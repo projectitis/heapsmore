@@ -147,7 +147,6 @@ class Box extends Object{
 	function contentHeight( v : Null<Float> ) : Float{
 		if (v==null){
 			// getter
-trace('Get content height as ${content.h}');
 			return content.h;
 		}
 		else{

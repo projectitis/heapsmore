@@ -7,11 +7,16 @@ import h2d.RenderContext;
 import h2d.Tile;
 import h2d.TileGroup;
 
+/**
+ * Text alignment options.
+ */
 enum Align {
 	Left;
 	Right;
 	Center;
 	Justify;
+	JustifyRight;
+	JustifyCenter;
 }
 
 /**
@@ -25,6 +30,9 @@ private enum WrapChar {
 	WrapAfter;	// Wrap after this character. e.g. '-'
 }
 
+/**
+ * Used internally to split text into lines based on wrapping
+ */
 private class TextLine {
 	public var text : String;		// the text of this line
 	public var width : Float;		// The pixel width of this line
@@ -59,7 +67,7 @@ class TextArea extends Box{
 	/**
 	 * The text color
 	 */
-	 public var color(default,set) : Int = 0;
+	public var color(default,set) : Int = 0;
 
 	/**
 	 * The text alignment
@@ -262,8 +270,8 @@ class TextArea extends Box{
 				}
 				if (((lw>mw) && (ei>0)) || (wc == WrapAlways)){
 					// Wrap here
-//trace('    Line from $si to $ei');
-					lines.push( new TextLine( text.substring(si,ei), ei_w, (ei_wc==WrapAlways) || (ei_wc==WrapOn)) );
+//trace('    Line from $si to $ei. ei_wc is $ei_wc, wc is $wc');
+					lines.push( new TextLine( text.substring(si,ei), ei_w, (ei_wc==WrapAlways) ) );
 					linesWidth = Math.max(linesWidth,ei_w);
 					// Determine next character to start from
 					if ((ei_wc==WrapAlways) || (ei_wc==WrapOn)) i = ei+1;
@@ -296,6 +304,19 @@ class TextArea extends Box{
 	}
 
 	/**
+	 * Return true if character is a character that we can break on
+	 * @param c 	The character code
+	 * @return Bool	True if whitespace
+	 */
+	 function getWrapChar( c : Int ) : WrapChar {
+		if (c=='\n'.code) return WrapAlways;
+		if ((c=='-'.code) || (c=='+'.code) || (c=='='.code) || (c=='.'.code) || (c==','.code) || (c=='/'.code) || (c=='\\'.code)) return WrapAfter;
+		//if ((c=='('.code) || (c=='['.code) || (c=='{'.code) || (c=='<'.code)) return WrapBefore;
+		if ((c<33) || (c==127)) return WrapOn;
+		return WrapNone;
+	}
+
+	/**
 	 * Called to redraw all glyph tiles
 	 */
 	function redraw(){
@@ -304,20 +325,43 @@ class TextArea extends Box{
 		var mw : Float = Math.floor(content.width);		// Max width
 		var mh : Float = Math.floor(content.height);	// Max height
 		var x : Float;
-		var y : Float = 0;
+		var y : Float = -8;
+		var js : Float = 0;			// Justify spacing
 		var cc : Int;				// Character's code
 		var cc_prev : Int;			// Previous character's code
 		var ch : Null<FontChar>; 	// Character
 		var ko : Float;				// kerning offset
 		var i : Int;
 		var t : Tile;				// For partial tiles
+		var tdx : Float = 0;		// Difference in tile x
+		var tdy : Float = 0;		// Difference in tile y
 		var tdw : Float = 0;		// Difference in tile width
 		var tdh : Float = 0;		// Difference in tile height
+		// Step lines
 		for (line in lines){
 			x = 0;
 			i = 0;
 			cc = -1;
 			tdw = 0;
+			// Adjust start x based on alignment 
+			js = 0;
+			switch (align){
+				case Right: x = mw - line.width;
+				case Center: x = (mw - line.width) / 2;
+				case Justify: {
+					if (!line.natural) js = (mw - line.width) / numSpaces(line.text);
+				}
+				case JustifyRight: {
+					if (line.natural) x = mw - line.width;
+					else js = (mw - line.width) / numSpaces(line.text);
+				}
+				case JustifyCenter: {
+					if (line.natural) x = (mw - line.width) / 2;
+					else js = (mw - line.width) / numSpaces(line.text);
+				}
+				default: {}
+			}
+			// Step characters in line
 			for( i in 0...line.text.length ){
 				cc_prev = cc;
 				cc = line.text.charCodeAt(i);
@@ -325,27 +369,52 @@ class TextArea extends Box{
 				if (ch!=null){
 					ko = ch.getKerningOffset(cc_prev);
 					x += ko;
+					tdx = tdy = tdw = tdh = 0;
 					// Check for partial x
-					if ((x+ch.t.dx+ch.t.width)>mw){
+					if (x<0){
+						// Entirely out of view. Skip to next character
+						if ((x+ch.t.dx+ch.t.width)<=0){
+							x += ch.width;
+							continue;
+						}
+						// Partial character
+						else{
+							tdx = tdw = -x - ch.t.dx;
+						}
+					}
+					else if ((x+ch.t.dx+ch.t.width)>mw){
 						tdw = x+ch.t.dx+ch.t.width - mw;
 					}
 					// Check for partial y
+					if (y<0){
+						// Entirely out of view. Skip to next character
+						if ((y+font.lineHeight)<=0){
+							x += ch.width;
+							continue;
+						}
+						// Partial character
+						else{
+							tdy = tdh = -y - ch.t.dy;
+						}
+					}
 					if ((y+ch.t.dy+ch.t.height)>mh){
 						tdh = y+ch.t.dy+ch.t.height - mh;
 					}
 					// Add partial tile
 					if ((tdw>0) || (tdh>0)){
 						t = ch.t.clone();
+						t.dx += tdx; t.dy += tdy;
+						t.setPosition( t.x+tdx, t.y+tdy );
 						t.setSize( t.width-tdw, t.height-tdh );
 						glyphs.add( Math.round(x), Math.round(y), t);
-						tdh = 0;
-						if (tdw>0) break; // If overflow x, skip to next line
 					}
 					// Add full tile
 					else{
 						glyphs.add( Math.round(x), Math.round(y), ch.t);
 					}
 					x += ch.width;
+					if (cc == ' '.code) x += js;
+					if (x>=mw) break; // If overflow x, skip to next line
 				}
 			}
 			y += font.lineHeight + lineSpacing;
@@ -354,16 +423,15 @@ class TextArea extends Box{
 	}
 
 	/**
-	 * Return true if character is a character that we can break on
-	 * @param c 	The character code
-	 * @return Bool	True if whitespace
+	 * Return the number of spaces in the string
+	 * @param s 	The string
+	 * @return Int	The number of spaces
 	 */
-	function getWrapChar( c : Int ) : WrapChar {
-		if (c=='\n'.code) return WrapAlways;
-		if ((c=='-'.code) || (c=='+'.code) || (c=='='.code) || (c=='.'.code) || (c==','.code) || (c=='/'.code) || (c=='\\'.code)) return WrapAfter;
-		if ((c=='('.code) || (c=='['.code) || (c=='{'.code) || (c=='<'.code)) return WrapBefore;
-		if ((c<33) || (c==127)) return WrapOn;
-		return WrapNone;
+	function numSpaces( s : String ) : Int{
+		var c : Int = 0;
+		for (i in 0...s.length) if (StringTools.fastCodeAt(s,i)==' '.code) c++;
+trace('$c spaces found');
+		return c;
 	}
 
 	/**
