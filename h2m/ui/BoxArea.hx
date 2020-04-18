@@ -1,4 +1,4 @@
-package hxm.ui;
+package h2m.ui;
 
 /**
  * css-style box model
@@ -32,7 +32,7 @@ class BoxArea{
 	 * @param height 	The height
 	 */
 	public function new( ?width : Float, ?height : Float ){
-		set(width,height)
+		set(width,height);
 	}
 
 	/**

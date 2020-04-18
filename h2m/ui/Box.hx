@@ -1,9 +1,9 @@
-package hxm.ui;
+package h2m.ui;
 
 import h2d.Object;
-import hxm.ui.BoxArea;
-import hxm.ui.BoxRect;
-import hxm.ui.BoxColorRect;
+import h2m.ui.BoxArea;
+import h2m.ui.BoxRect;
+import h2m.ui.BoxColorRect;
 
 /**
  * css-style box model
@@ -63,12 +63,12 @@ class Box extends Object{
 	 /**
 	  * Set a maximum height limit (includes content+padding+border)
 	  **/
-	 public var maxHeight(get,set) : Null<Float> = null;
+	 public var maxHeight(default,set) : Null<Float> = null;
 
 	 /**
 	  * Set a minimum height limit (includes content+padding+border)
 	  **/
-	  public var minHeight(get,set) : Null<Float> = null;
+	  public var minHeight(default,set) : Null<Float> = null;
 
 	/**
 	 * Create a new box

@@ -1,6 +1,6 @@
-package hxm.ui;
+package h2m.ui;
 
-import hxm.ui.BoxColor;
+import h2m.ui.BoxColor;
 
 /**
  * css-style box model

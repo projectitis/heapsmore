@@ -1,6 +1,6 @@
-package hxm.ui;
+package h2m.ui;
 
-import hxm.ui.Box;
+import h2m.ui.Box;
 import h2d.Font;
 import h2d.RenderContext;
 
@@ -72,10 +72,17 @@ class TextArea extends Box{
 		}
 	}
 
+	/**
+	 * Clear any currently rendered text
+	 */
+	function clear(){
+
+	}
+
 	override function draw(ctx:RenderContext) {
 		if (!dirty) return;
 
-		if (!font){
+		if (font==null){
 			clear();
 			return;
 		}

@@ -1,4 +1,4 @@
-package hxm.ui;
+package h2m.ui;
 
 /**
  * css-style box model
