@@ -1,6 +1,6 @@
-package h2m.ui;
+package m2d.ui;
 
-import h2m.ui.Box;
+import m2d.ui.Box;
 import h2d.Font;
 import h2d.RenderContext;
 

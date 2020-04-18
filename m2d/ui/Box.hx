@@ -1,9 +1,9 @@
-package h2m.ui;
+package m2d.ui;
 
 import h2d.Object;
-import h2m.ui.BoxArea;
-import h2m.ui.BoxRect;
-import h2m.ui.BoxColorRect;
+import m2d.ui.BoxArea;
+import m2d.ui.BoxRect;
+import m2d.ui.BoxColorRect;
 
 /**
  * css-style box model
@@ -11,6 +11,11 @@ import h2m.ui.BoxColorRect;
  * 		Border
  * 			Padding
  * 				Content
+ * In most cases, the reference position and size is based on border (like css box-model:border-box). So, if
+ * you get box.width it will be the width of the content, padding and border. If you position the box using x
+ * and y, it will be positioned based on the top-left corner of the border.
+ * Box only contains values and does not do any rendering of it's own. The sub-class (or other) is responsible
+ * for that.
  */
 class Box extends Object{
 
@@ -53,22 +58,22 @@ class Box extends Object{
 	/**
 	 * Set a maximum width limit (includes content+padding+border)
 	 **/
-	 public var maxWidth(default,set) : Null<Float> = null;
+	public var maxWidth(default,set) : Null<Float> = null;
 
 	 /**
 	 * Set a minimum width limit (includes content+padding+border)
 	 **/
-	 public var minWidth(default,set) : Null<Float> = null;
+	public var minWidth(default,set) : Null<Float> = null;
 
 	 /**
 	  * Set a maximum height limit (includes content+padding+border)
 	  **/
-	 public var maxHeight(default,set) : Null<Float> = null;
+	public var maxHeight(default,set) : Null<Float> = null;
 
 	 /**
 	  * Set a minimum height limit (includes content+padding+border)
 	  **/
-	  public var minHeight(default,set) : Null<Float> = null;
+	public var minHeight(default,set) : Null<Float> = null;
 
 	/**
 	 * Create a new box

@@ -1,4 +1,4 @@
-package h2m.ui;
+package m2d.ui;
 
 /**
  * css-style box model

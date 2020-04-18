@@ -1,6 +1,6 @@
-package h2m.ui;
+package m2d.ui;
 
-import h2m.ui.BoxColor;
+import m2d.ui.BoxColor;
 
 /**
  * css-style box model
