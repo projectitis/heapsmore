@@ -5,6 +5,9 @@ package m2d.ui;
  */
 class BoxArea{
 
+	var w : Float = 0;
+	var h : Float = 0;
+
 	/**
 	 * Get or set the width. Actually calls onWidth, which must be handled by the parent.
 	 */
@@ -49,21 +52,23 @@ class BoxArea{
 	/**
 	 * Size getter and setters (pass-thru to callback)
 	 */
-	 function get_width() : Float{
-		if (onWidth==null) return 0;
+	function get_width() : Float{
+		if (onWidth==null) return w;
 		return onWidth(null);
 	}
 	function set_width( v : Float ) : Float{
-		if (onWidth==null) return 0;
-		return onWidth(v);
+		if (onWidth==null) return v;
+		w = onWidth(v);
+		return v;
 	}
 	function get_height() : Float{
-		if (onHeight==null) return 0;
+		if (onHeight==null) return h;
 		return onHeight(null);
 	}
 	function set_height( v : Float ) : Float{
-		if (onHeight==null) return 0;
-		return onHeight(v);
+		if (onHeight==null) return v;
+		h = onHeight(v);
+		return v;
 	}
 
 }

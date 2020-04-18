@@ -128,10 +128,11 @@ class Box extends Object{
 	/**
 	 * CONTENT callbacks
 	 **/
+	@:access(m2d.ui.BoxArea.w)
 	function contentWidth( v : Null<Float> ) : Float{
 		if (v==null){
 			// getter
-			return content.width;
+			return content.w;
 		}
 		else{
 			// setter
@@ -139,14 +140,15 @@ class Box extends Object{
 			var w : Float = v;
 			if ((minWidth!=null) && ((w+ew) < minWidth)) w = minWidth-ew;
 			if ((maxWidth!=null) && ((w+ew) > maxWidth)) w = Math.max(0,maxWidth-ew);
-			content.width = (w<0)?0:w;
-			return v;
+			return (w<0)?0:w;
 		}
 	}
+	@:access(m2d.ui.BoxArea.h)
 	function contentHeight( v : Null<Float> ) : Float{
 		if (v==null){
 			// getter
-			return content.height;
+trace('Get content height as ${content.h}');
+			return content.h;
 		}
 		else{
 			// setter. Apply max- min- height limits
@@ -154,34 +156,33 @@ class Box extends Object{
 			var h : Float = v;
 			if ((minHeight!=null) && ((h+eh) < minHeight)) h = minHeight-eh;
 			if ((maxHeight!=null) && ((h+eh) > maxHeight)) h = Math.max(0,maxHeight-eh);
-			content.height = (h<0)?0:h;
-			return v;
+			return (h<0)?0:h;
 		}
 	}
 
 	/**
 	 * PADDING callbacks
 	 **/
+	@:access(m2d.ui.BoxArea.w)
 	function paddingWidth( v : Null<Float> ) : Float{
 		if (v==null){
 			// getter
-			return content.width + padding.left + padding.right;
+			return content.w + padding.left + padding.right;
 		}
 		else{
 			// setter
-			content.width = v - padding.left - padding.right;
-			return v;
+			return v - padding.left - padding.right;
 		}
 	}
+	@:access(m2d.ui.BoxArea.h)
 	function paddingHeight( v : Null<Float> ) : Float{
 		if (v==null){
 			// getter
-			return content.height + padding.top + padding.bottom;
+			return content.h + padding.top + padding.bottom;
 		}
 		else{
 			// setter
-			content.height = v - padding.top - padding.bottom;
-			return v;
+			return v - padding.top - padding.bottom;
 		}
 	}
 
@@ -202,31 +203,27 @@ class Box extends Object{
 		border.height = v;
 		return v;
 	}
+	@:access(m2d.ui.BoxArea.w)
 	function borderWidth( v : Null<Float>) : Float{
 		if (v==null){
 			// Getter
-			return padding.width + border.left.size + border.right.size;
+			return content.w + padding.left + padding.right + border.left.size + border.right.size;
 		}
 		else{
 			// Setter
-			var cv : Float = v;
-			if (maxWidth!=null) cv = Math.min(maxWidth,cv);
-			if (minWidth!=null) cv = Math.max(minWidth,cv);
-			content.width = cv - padding.left - padding.right - border.left.size - border.right.size;
+			content.width = v - padding.left - padding.right - border.left.size - border.right.size;
 			return v;
 		}
 	}
+	@:access(m2d.ui.BoxArea.h)
 	function borderHeight( v : Null<Float>) : Float{
 		if (v==null){
 			// Getter
-			return padding.height + border.top.size + border.bottom.size;
+			return content.h + padding.top + padding.bottom + border.top.size + border.bottom.size;
 		}
 		else{
 			// Setter
-			var cv : Float = v;
-			if (maxHeight!=null) cv = Math.min(maxHeight,cv);
-			if (minHeight!=null) cv = Math.max(minHeight,cv);
-			content.height = cv - padding.top - padding.bottom - border.top.size - border.bottom.size;
+			content.height = v - padding.top - padding.bottom - border.top.size - border.bottom.size;
 			return v;
 		}
 	}
@@ -234,10 +231,11 @@ class Box extends Object{
 	/**
 	 * MARGIN getters and setters
 	 **/
+	@:access(m2d.ui.BoxArea.w)
 	function marginWidth( v : Null<Float>) : Float{
 		if (v==null){
 			// Getter
-			return border.width + margin.left + margin.right;
+			return content.w + padding.left + padding.right + border.left.size + border.right.size + margin.left + margin.right;
 		}
 		else{
 			// Setter
@@ -245,10 +243,11 @@ class Box extends Object{
 			return v;
 		}
 	}
+	@:access(m2d.ui.BoxArea.h)
 	function marginHeight( v : Null<Float>) : Float{
 		if (v==null){
 			// Getter
-			return border.height + margin.top + margin.bottom;
+			return content.h + padding.top + padding.bottom + border.top.size + border.bottom.size + margin.top + margin.bottom;
 		}
 		else{
 			// Setter
