@@ -11,3 +11,7 @@ The package structure is similar to Heaps:
 * __m2d__ - 2D-related classes
 * __m3d__ - 3D-related classes
 * __mxd__ - 2D/3D agnostic classes
+
+## Changes
+__2020-04-19__
+* TextArea: Fixed width and maxWidth

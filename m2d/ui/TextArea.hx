@@ -51,6 +51,12 @@ private class TextLine {
  *		Clipping
  *		Better text wrap
  *		Auto-width, auto-height, or fixed size
+ *		max- and min- width and height (works with auto-width and height)
+ * Todo:
+ * 		Right align (and right edge of justify) is not super accurate. Glyphs don't line up nicely on right edge
+ * 		Implement scrollH, scrollY, maxScrollH, maxScrollY
+ * 		Implement background color and border
+ * 		Ability to set height in number of lines (heightInLines? numLines?) also read?
  */
 class TextArea extends Box{
 
@@ -211,17 +217,17 @@ class TextArea extends Box{
 	/**
 	 * Ensure that if someone tries to read the width that we update first
 	 */
-	override function borderWidth( v : Null<Float>) : Float{
+	override function get_width() : Float{
 		if (needsUpdate) update();
-		return super.borderWidth(v);
+		return super.get_width();
 	}
 
 	/**
-	 * Ensure that if someone tries to read the height that we update first
+	 * Ensure that if someone tries to read the width that we update first
 	 */
-	override function borderHeight( v : Null<Float>) : Float{
+	 override function get_height() : Float{
 		if (needsUpdate) update();
-		return super.borderHeight(v);
+		return super.get_height();
 	}
 
 	/**
@@ -232,7 +238,14 @@ class TextArea extends Box{
 		if (lines==null){
 			lines = new Array();
 			linesWidth = 0;
-			var mw : Int = autoWidth?2147483647:Math.floor(content.width);	// Max width
+			var mw : Int;						// Max line width
+			if (autoWidth){
+				if (maxWidth!=null) mw = Math.floor(maxWidth - (padding.left + padding.right + border.left.size + border.right.size));
+				else mw = 2147483647;
+			}
+			else{
+				mw = Math.floor(content.width);
+			}
 			var lw : Float = 0;					// Line width
 			var ch : Null<FontChar>;			// Character
 			var cc : Int = -1;					// Current character's code
@@ -252,6 +265,7 @@ class TextArea extends Box{
 //trace('$i: ${String.fromCharCode(cc)}');
 				// Increase width by character stride if glyph exists
 				ch = font.getChar(cc);
+//trace('\n  dx:${ch.t.dx}\n  dy:${ch.t.dy}');
 				if (ch!=null) lw += ch.width + ch.getKerningOffset(cc_prev);
 				// Mark line ending if we should
 				if (wc_prev==WrapNone) {
@@ -269,7 +283,7 @@ class TextArea extends Box{
 //trace('  Set line end (last was WrapAfter)');
 				}
 				if (((lw>mw) && (ei>0)) || (wc == WrapAlways)){
-					// Wrap here
+					// Wrap here. The last character width should be the width of the glyph, not the whole stride
 //trace('    Line from $si to $ei. ei_wc is $ei_wc, wc is $wc');
 					lines.push( new TextLine( text.substring(si,ei), ei_w, (ei_wc==WrapAlways) ) );
 					linesWidth = Math.max(linesWidth,ei_w);
@@ -298,7 +312,7 @@ class TextArea extends Box{
 			if (autoHeight) content.height = linesHeight;
 		}
 //for (l in lines) trace(l.text+'\t\t'+l.width);
-//trace('Width: ${Math.ceil(content.width)} Height:${Math.ceil(content.height)}');
+//trace('Content width: ${Math.ceil(content.width)} Content height:${Math.ceil(content.height)}');
 		needsUpdate = false;
 		needsRedraw = true;
 	}
@@ -325,7 +339,7 @@ class TextArea extends Box{
 		var mw : Float = Math.floor(content.width);		// Max width
 		var mh : Float = Math.floor(content.height);	// Max height
 		var x : Float;
-		var y : Float = -8;
+		var y : Float = 0;
 		var js : Float = 0;			// Justify spacing
 		var cc : Int;				// Character's code
 		var cc_prev : Int;			// Previous character's code
@@ -410,6 +424,8 @@ class TextArea extends Box{
 					}
 					// Add full tile
 					else{
+						// If first char in line, do not offset it (Left, Justify only)
+						if (i==0) x -= ch.t.dx;
 						glyphs.add( Math.round(x), Math.round(y), ch.t);
 					}
 					x += ch.width;
@@ -430,7 +446,6 @@ class TextArea extends Box{
 	function numSpaces( s : String ) : Int{
 		var c : Int = 0;
 		for (i in 0...s.length) if (StringTools.fastCodeAt(s,i)==' '.code) c++;
-trace('$c spaces found');
 		return c;
 	}
 
