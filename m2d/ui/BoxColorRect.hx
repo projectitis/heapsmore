@@ -7,30 +7,35 @@ import m2d.ui.BoxColor;
  */
 class BoxColorRect{
 
+	/**
+	 * The top size/color pair
+	 */
 	public var top : BoxColor = new BoxColor();
-	public var bottom : BoxColor = new BoxColor();
-	public var left : BoxColor = new BoxColor();
-	public var right : BoxColor = new BoxColor();
 
 	/**
-	 * Get or set the width. Actually calls onWidth, which must be handled by the parent.
+	 * The bottom size/color pair
 	 */
-	 public var width(get,set) : Float;
+	public var bottom : BoxColor = new BoxColor();
 
-	 /**
-	  * Get or set the height. Actually calls onHeight, which must be handled by the parent.
-	  */
-	 public var height(get,set) : Float;
+	/**
+	 * The left size/color pair
+	 */
+	public var left : BoxColor = new BoxColor();
+
+	/**
+	 * The right size/color pair
+	 */
+	public var right : BoxColor = new BoxColor();
  
-	 /**
-	  * Callback when width is get or set. Implement by parent.
-	  */
-	 public var onWidth : Null<Float> -> Float = null;
- 
-	 /**
-	  * Callback when height is get or set. Implement by parent.
-	  */
-	 public var onHeight : Null<Float> -> Float = null;
+	/**
+	 * Callback when size is changed
+	 */
+	public var onChangeSize : Void -> Void = null;
+
+	/**
+	 * Callback when color is changed
+	 */
+	public var onChangeColor : Void -> Void = null;
 
 	/**
 	 * Create with all side sizes at the specified values. If only topOrAll is provided, all sizes will be set to
@@ -42,6 +47,14 @@ class BoxColorRect{
 	 * @param left			The value for left size
 	 */
 	public function new( topOrAll : Float = 0, ?right : Float, ?bottom : Float, ?left : Float ){
+		this.top.onChangeColor = changeColor;
+		this.right.onChangeColor = changeColor;
+		this.bottom.onChangeColor = changeColor;
+		this.left.onChangeColor = changeColor;
+		this.top.onChangeSize = changeSize;
+		this.right.onChangeSize = changeSize;
+		this.bottom.onChangeSize = changeSize;
+		this.left.onChangeSize = changeSize;
 		this.setSize( topOrAll, right, bottom, left );
 	}
 
@@ -54,15 +67,23 @@ class BoxColorRect{
 	 * @param bottom 		The size of bottom (no change if null)
 	 * @param left 			The size of left (no change if null)
 	 */
-	 public function setSize( ?topOrAll : Float, ?right : Float, ?bottom : Float, ?left : Float ){
+	public function setSize( ?topOrAll : Float, ?right : Float, ?bottom : Float, ?left : Float ){
+		var callback : Void -> Void = onChangeSize; onChangeSize = null; // Ensures callback called only once
 		if ((left==null) && (bottom==null) && (right==null)){
-			if (topOrAll!=null) this.top.size = this.right.size = this.bottom.size = this.left.size = topOrAll;
+			if (topOrAll!=null){
+				this.top.size = this.right.size = this.bottom.size = this.left.size = topOrAll;
+			}
 		}
 		else{
 			if (topOrAll!=null) this.top.size = topOrAll;
 			if (right!=null) this.right.size = right;
 			if (bottom!=null) this.bottom.size = bottom;
 			if (left!=null) this.left.size = left;
+		}
+		// Ensure callback is not recursively called
+		if (callback != null){
+			callback();
+			onChangeSize = callback;
 		}
 	}
 
@@ -75,7 +96,8 @@ class BoxColorRect{
 	 * @param bottom 		The color of bottom (no change if null)
 	 * @param left 			The color of left (no change if null)
 	 */
-	 public function setColor( ?topOrAll : Int, ?right : Int, ?bottom : Int, ?left : Int ){
+	public function setColor( ?topOrAll : Int, ?right : Int, ?bottom : Int, ?left : Int ){
+		var callback : Void -> Void = onChangeColor; onChangeColor = null; // Ensures callback called only once
 		if ((left==null) && (bottom==null) && (right==null)){
 			if (topOrAll!=null) this.top.color = this.right.color = this.bottom.color = this.left.color = topOrAll;
 		}
@@ -85,26 +107,37 @@ class BoxColorRect{
 			if (bottom!=null) this.bottom.color = bottom;
 			if (left!=null) this.left.color = left;
 		}
+		// Ensure callback is not recursively called
+		if (callback != null){
+			callback();
+			onChangeColor = callback;
+		}
 	}
 
 	/**
-	 * Size getter and setters (pass-thru to callbac)
+	 * Callback when color changes
 	 */
-	function get_width() : Float{
-		if (onWidth==null) return 0;
-		return onWidth(null);
+	function changeColor(){
+		// Ensure callback is not recursively called
+		if (onChangeColor != null){
+			var callback : Void -> Void = onChangeColor;
+			onChangeColor = null;
+			callback();
+			onChangeColor = callback;
+		}
 	}
-	function set_width( v : Float ) : Float{
-		if (onWidth==null) return 0;
-		return onWidth(v);
-	}
-	function get_height() : Float{
-		if (onHeight==null) return 0;
-		return onHeight(null);
-	}
-	function set_height( v : Float ) : Float{
-		if (onHeight==null) return 0;
-		return onHeight(v);
+
+	/**
+	 * Callback when size changes
+	 */
+	 function changeSize(){
+		// Ensure callback is not recursively called
+		if (onChangeSize != null){
+			var callback : Void -> Void = onChangeSize;
+			onChangeSize = null;
+			callback();
+			onChangeSize = callback;
+		}
 	}
 
 }

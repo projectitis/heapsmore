@@ -16,6 +16,16 @@ class BoxColor{
 	public var color(default,set) : Int = 0;
 
 	/**
+	 * Callback when size changes
+	 */
+	public var onChangeSize : Void -> Void = null;
+
+	/**
+	 * Callback when color changes
+	 */
+	public var onChangeColor : Void -> Void = null;
+
+	/**
 	 * Create new BoxArea with specified width and height
 	 * @param width 
 	 * @param height 
@@ -30,6 +40,7 @@ class BoxColor{
 	 */
 	 function set_size( v : Float ) : Float{
 		this.size = (v<0)?0:v;
+		if (onChangeSize!=null) onChangeSize();
 		return v;
 	}
 
@@ -38,6 +49,7 @@ class BoxColor{
 	 */
 	function set_color( c : Int ) : Int{
 		this.color = (c<0)?0:c;
+		if (onChangeColor!=null) onChangeSize();
 		return c;
 	}
 

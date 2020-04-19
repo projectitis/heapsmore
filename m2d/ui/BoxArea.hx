@@ -5,28 +5,20 @@ package m2d.ui;
  */
 class BoxArea{
 
-	var w : Float = 0;
-	var h : Float = 0;
-
 	/**
 	 * Get or set the width. Actually calls onWidth, which must be handled by the parent.
 	 */
-	 public var width(get,set) : Float;
+	public var width(default,set) : Float;
 
-	 /**
-	  * Get or set the height. Actually calls onHeight, which must be handled by the parent.
-	  */
-	 public var height(get,set) : Float;
+	/**
+	 * Get or set the height. Actually calls onHeight, which must be handled by the parent.
+	 */
+	public var height(default,set) : Float;
  
-	 /**
-	  * Callback when width is get or set. Implement by parent.
-	  */
-	 public var onWidth : Null<Float> -> Float = null;
- 
-	 /**
-	  * Callback when height is get or set. Implement by parent.
-	  */
-	 public var onHeight : Null<Float> -> Float = null;
+	/**
+	 * Callback when size changes
+	 */
+	public var onChange : Void -> Void = null;
 
 	/**
 	 * Create new BoxArea with specified width and height. If a parameter is null, the
@@ -35,7 +27,7 @@ class BoxArea{
 	 * @param height 	The height
 	 */
 	public function new( ?width : Float, ?height : Float ){
-		set(width,height);
+		setSize(width,height);
 	}
 
 	/**
@@ -44,30 +36,40 @@ class BoxArea{
 	 * @param width 	The width
 	 * @param height 	The height
 	 */
-	public function set( width : Null<Float>, height : Null<Float> = null ){
+	public function setSize( width : Null<Float>, height : Null<Float> = null ){
+		var callback : Void -> Void = onChange; onChange = null; // Ensures callback called only once
 		if (width!=null) this.width = width;
 		if (height!=null) this.height = height;
+		// Ensure callback is not recursively called
+		if (callback != null){
+			callback();
+			onChange = callback;
+		}
 	}
 
 	/**
 	 * Size getter and setters (pass-thru to callback)
 	 */
-	function get_width() : Float{
-		if (onWidth==null) return w;
-		return onWidth(null);
-	}
 	function set_width( v : Float ) : Float{
-		if (onWidth==null) return v;
-		w = onWidth(v);
+		width = (v<0)?0:v;
+		// Ensure callback is not recursively called
+		if (onChange != null){
+			var callback : Void -> Void = onChange;
+			onChange = null;
+			callback();
+			onChange = callback;
+		}
 		return v;
 	}
-	function get_height() : Float{
-		if (onHeight==null) return h;
-		return onHeight(null);
-	}
 	function set_height( v : Float ) : Float{
-		if (onHeight==null) return v;
-		h = onHeight(v);
+		height = (v<0)?0:v;
+		// Ensure callback is not recursively called
+		if (onChange != null){
+			var callback : Void -> Void = onChange;
+			onChange = null;
+			callback();
+			onChange = callback;
+		}
 		return v;
 	}
 

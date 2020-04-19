@@ -8,42 +8,27 @@ class BoxRect{
 	/**
 	 * Size of top
 	 */
-	public var top : Float = 0;
+	public var top(default,set) : Float = 0;
 
 	/**
 	 * Size of bottom
 	 */
-	public var bottom : Float = 0;
+	public var bottom(default,set) : Float = 0;
 
 	/**
 	 * Size of left
 	 */
-	public var left : Float = 0;
+	public var left(default,set) : Float = 0;
 
 	/**
 	 * Size of right
 	 */
-	public var right : Float = 0;
+	public var right(default,set) : Float = 0;
 
 	/**
-	 * Get or set the width. Actually calls onWidth, which must be handled by the parent.
+	 * Callback when size changes
 	 */
-	public var width(get,set) : Float;
-
-	/**
-	 * Get or set the height. Actually calls onHeight, which must be handled by the parent.
-	 */
-	public var height(get,set) : Float;
-
-	/**
-	 * Callback when width is get or set. Implement by parent.
-	 */
-	public var onWidth : Null<Float> -> Float = null;
-
-	/**
-	 * Callback when height is get or set. Implement by parent.
-	 */
-	public var onHeight : Null<Float> -> Float = null;
+	public var onChange : Void -> Void = null;
 
 	/**
 	 * Create a new BoxRect with the specified values. If only topOrAll is provided, all sides will be
@@ -55,7 +40,7 @@ class BoxRect{
 	 * @param left 			The value for left (no change if null)
 	 */
 	public function new( topOrAll : Float = 0, ?right : Float, ?bottom : Float, ?left : Float ){
-		this.set( topOrAll, right, bottom, left );
+		this.setSize( topOrAll, right, bottom, left );
 	}
 
 	/**
@@ -67,7 +52,8 @@ class BoxRect{
 	 * @param bottom 		The value for bottom (no change if null)
 	 * @param left 			The value for left (no change if null)
 	 */
-	public function set( ?topOrAll : Float, ?right : Float, ?bottom : Float, ?left : Float ){
+	public function setSize( ?topOrAll : Float, ?right : Float, ?bottom : Float, ?left : Float ){
+		var callback : Void -> Void = onChange; onChange=null; // Ensures callback called only once
 		if ((left==null) && (bottom==null) && (right==null)){
 			if (topOrAll!=null) this.top = this.right = this.bottom = this.left = topOrAll;
 		}
@@ -77,27 +63,56 @@ class BoxRect{
 			if (bottom!=null) this.bottom = bottom;
 			if (left!=null) this.left = left;
 		}
+		// Ensure callback is not recursively called
+		if (callback != null){
+			callback();
+			onChange = callback;
+		}
 	}
 
 	/**
-	 * Size getter and setters (pass-thru to callback)
+	 * Size setters
 	 */
-	function get_width() : Float{
-		if (onWidth==null) return 0;
-		return onWidth(null);
+	function set_top( v : Float ) : Float{
+		top = v;
+		// Ensure callback is not recursively called
+		if (onChange != null){
+			var callback : Void -> Void = onChange;
+			onChange = null;
+			callback();
+			onChange = callback;
+		}
+		return v;
 	}
-	function set_width( v : Float ) : Float{
-		if (onWidth==null) return 0;
-		return onWidth(v);
+	function set_right( v : Float ) : Float{
+		right = v;
+		if (onChange != null){
+			var callback : Void -> Void = onChange;
+			onChange = null;
+			callback();
+			onChange = callback;
+		}
+		return v;
 	}
-
-	function get_height() : Float{
-		if (onHeight==null) return 0;
-		return onHeight(null);
+	function set_bottom( v : Float ) : Float{
+		bottom = v;
+		if (onChange != null){
+			var callback : Void -> Void = onChange;
+			onChange = null;
+			callback();
+			onChange = callback;
+		}
+		return v;
 	}
-	function set_height( v : Float ) : Float{
-		if (onHeight==null) return 0;
-		return onHeight(v);
+	function set_left( v : Float ) : Float{
+		left = v;
+		if (onChange != null){
+			var callback : Void -> Void = onChange;
+			onChange = null;
+			callback();
+			onChange = callback;
+		}
+		return v;
 	}
 
 }

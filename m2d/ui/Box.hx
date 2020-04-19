@@ -20,6 +20,16 @@ import m2d.ui.BoxColorRect;
 class Box extends Object{
 
 	/**
+	 * User width
+	 */
+	var w : Float = 0;
+
+	/**
+	 * User height
+	 */
+	 var h : Float = 0;
+
+	/**
 	 * The margins of the box. Adjust these directly, or use the margin_ methods.
 	 * The margins sit outside the border and determine the spacing between Boxes.
 	 */
@@ -46,12 +56,12 @@ class Box extends Object{
 	public var content : BoxArea = new BoxArea();
 
 	/**
-	 * Same as border.width. Change size of content while keeping x,y the same
+	 * Width of border+padding+content (not margin)
 	 **/
 	public var width(get,set) : Float;
 
 	/**
-	 * Same as border.height. Change size of content while keeping x,y the same
+	 * Height of border+padding+content (not margin)
 	 **/
 	public var height(get,set) : Float;
 
@@ -81,15 +91,10 @@ class Box extends Object{
 	 * @param height 	Height of box
 	 **/
 	public function new( ?width : Float, ?height : Float, ?parent : Object ){
-		content.onWidth = this.contentWidth;
-		content.onHeight = this.contentHeight;
-		padding.onWidth = this.paddingWidth;
-		padding.onHeight = this.paddingHeight;
-		border.onWidth = this.borderWidth;
-		border.onHeight = this.borderHeight;
-		padding.onWidth = this.marginWidth;
-		padding.onHeight = this.marginHeight;
-		content.set( width, height );
+		content.onChange = contentChange;
+		padding.onChange = boxChange;
+		border.onChangeSize = boxChange;
+		content.setSize( width, height );
 		super(parent);
 	}
 
@@ -99,160 +104,97 @@ class Box extends Object{
 	function set_maxWidth( v : Float ) : Float{
 		if (maxWidth!=v){
 			maxWidth = (v<0)?0:v;
-			width = width; // Force resize to apply new limit
+			contentChange(); // Force resize to apply new limit
 		}
 		return v;
 	}
 	function set_minWidth( v : Float ) : Float{
 		if (minWidth!=v){
 			minWidth = (v<0)?0:v;
-			width = width; // Force resize to apply new limit
+			contentChange(); // Force resize to apply new limit
 		}
 		return v;
 	}
 	function set_maxHeight( v : Float ) : Float{
 		if (maxHeight!=v){
 			maxHeight = (v<0)?0:v;
-			height = height; // Force resize to apply new limit
+			contentChange(); // Force resize to apply new limit
 		}
 		return v;
 	}
 	function set_minHeight( v : Float ) : Float{
 		if (minHeight!=v){
 			minHeight = (v<0)?0:v;
-			height = height; // Force resize to apply new limit
+			contentChange(); // Force resize to apply new limit
 		}
 		return v;
 	}
 
 	/**
-	 * CONTENT callbacks
+	 * The size of the content has changed directly
 	 **/
-	@:access(m2d.ui.BoxArea.w)
-	function contentWidth( v : Null<Float> ) : Float{
-		if (v==null){
-			// getter
-			return content.w;
-		}
-		else{
-			// setter
-			var ew : Float = padding.left + padding.right + border.left.size + border.right.size;
-			var w : Float = v;
-			if ((minWidth!=null) && ((w+ew) < minWidth)) w = minWidth-ew;
-			if ((maxWidth!=null) && ((w+ew) > maxWidth)) w = Math.max(0,maxWidth-ew);
-			return (w<0)?0:w;
-		}
+	function contentChange(){
+		var callback : Void -> Void = content.onChange; content.onChange = null; // Ensure we don't recurse
+
+		// Content size has been changed. Ensure size ok
+		var ex : Float = padding.left + padding.right + border.left.size + border.right.size;
+		var v : Float = content.width;
+		if ((minWidth!=null) && ((v+ex) < minWidth)) v = minWidth-ex;
+		if ((maxWidth!=null) && ((v+ex) > maxWidth)) v = Math.max(0,maxWidth-ex);
+		content.width = v;
+		w = v + ex;
+
+		ex = padding.top + padding.bottom + border.top.size + border.bottom.size;
+		v = content.height;
+		if ((minHeight!=null) && ((v+ex) < minHeight)) v = minHeight-ex;
+		if ((maxHeight!=null) && ((v+ex) > maxHeight)) v = Math.max(0,maxHeight-ex);
+		content.height = v;
+		h = v + ex;
+
+		content.onChange = callback;
 	}
-	@:access(m2d.ui.BoxArea.h)
-	function contentHeight( v : Null<Float> ) : Float{
-		if (v==null){
-			// getter
-			return content.h;
-		}
-		else{
-			// setter. Apply max- min- height limits
-			var eh : Float = padding.top + padding.bottom + border.top.size + border.bottom.size;
-			var h : Float = v;
-			if ((minHeight!=null) && ((h+eh) < minHeight)) h = minHeight-eh;
-			if ((maxHeight!=null) && ((h+eh) > maxHeight)) h = Math.max(0,maxHeight-eh);
-			return (h<0)?0:h;
-		}
+	/**
+	 * The size of the box (padding, border) has changed, so adjust content according to w,h
+	 */
+	function boxChange(){
+		var callback : Void -> Void = content.onChange; content.onChange = null; // Ensure we don't recurse
+
+		// Content size has been changed. Ensure size ok
+		var ex : Float = padding.left + padding.right + border.left.size + border.right.size;
+		var v : Float = w - ex;
+		if ((minWidth!=null) && ((v+ex) < minWidth)) v = minWidth-ex;
+		if ((maxWidth!=null) && ((v+ex) > maxWidth)) v = Math.max(0,maxWidth-ex);
+		content.width = v;
+
+		ex = padding.top + padding.bottom + border.top.size + border.bottom.size;
+		v = h - ex;
+		if ((minHeight!=null) && ((v+ex) < minHeight)) v = minHeight-ex;
+		if ((maxHeight!=null) && ((v+ex) > maxHeight)) v = Math.max(0,maxHeight-ex);
+		content.height = v;
+
+		content.onChange = callback;
 	}
 
-	/**
-	 * PADDING callbacks
-	 **/
-	@:access(m2d.ui.BoxArea.w)
-	function paddingWidth( v : Null<Float> ) : Float{
-		if (v==null){
-			// getter
-			return content.w + padding.left + padding.right;
-		}
-		else{
-			// setter
-			return v - padding.left - padding.right;
-		}
-	}
-	@:access(m2d.ui.BoxArea.h)
-	function paddingHeight( v : Null<Float> ) : Float{
-		if (v==null){
-			// getter
-			return content.h + padding.top + padding.bottom;
-		}
-		else{
-			// setter
-			return v - padding.top - padding.bottom;
-		}
-	}
+
 
 	/**
 	 * BORDER methods
 	 **/
 	function get_width() : Float{
-		return border.width;
+		return content.width + padding.left + padding.right + border.left.size + border.right.size;
 	}
 	function set_width( v : Float ) : Float{
-		border.width = v;
+		content.width = v - (padding.left + padding.right + border.left.size + border.right.size);
+		w = content.width;
 		return v;
 	}
 	function get_height() : Float{
-		return border.height;
+		return content.height + padding.top + padding.bottom + border.top.size + border.bottom.size;
 	}
 	function set_height( v : Float ) : Float{
-		border.height = v;
+		content.height = v - (padding.top + padding.bottom + border.top.size + border.bottom.size);
+		h = content.height;
 		return v;
-	}
-	@:access(m2d.ui.BoxArea.w)
-	function borderWidth( v : Null<Float>) : Float{
-		if (v==null){
-			// Getter
-			return content.w + padding.left + padding.right + border.left.size + border.right.size;
-		}
-		else{
-			// Setter
-			content.width = v - padding.left - padding.right - border.left.size - border.right.size;
-			return v;
-		}
-	}
-	@:access(m2d.ui.BoxArea.h)
-	function borderHeight( v : Null<Float>) : Float{
-		if (v==null){
-			// Getter
-			return content.h + padding.top + padding.bottom + border.top.size + border.bottom.size;
-		}
-		else{
-			// Setter
-			content.height = v - padding.top - padding.bottom - border.top.size - border.bottom.size;
-			return v;
-		}
-	}
-
-	/**
-	 * MARGIN getters and setters
-	 **/
-	@:access(m2d.ui.BoxArea.w)
-	function marginWidth( v : Null<Float>) : Float{
-		if (v==null){
-			// Getter
-			return content.w + padding.left + padding.right + border.left.size + border.right.size + margin.left + margin.right;
-		}
-		else{
-			// Setter
-			content.width = v - padding.left - padding.right - border.left.size - border.right.size - margin.left - margin.right;
-			return v;
-		}
-	}
-	@:access(m2d.ui.BoxArea.h)
-	function marginHeight( v : Null<Float>) : Float{
-		if (v==null){
-			// Getter
-			return content.h + padding.top + padding.bottom + border.top.size + border.bottom.size + margin.top + margin.bottom;
-		}
-		else{
-			// Setter
-			content.height = v - padding.top - padding.bottom - border.top.size - border.bottom.size - margin.top - margin.bottom;
-			return v;
-		}
 	}
 
 }
