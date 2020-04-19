@@ -52,25 +52,21 @@ class BoxArea{
 	 */
 	function set_width( v : Float ) : Float{
 		width = (v<0)?0:v;
-		// Ensure callback is not recursively called
-		if (onChange != null){
-			var callback : Void -> Void = onChange;
-			onChange = null;
-			callback();
-			onChange = callback;
-		}
+		changed();
 		return v;
 	}
 	function set_height( v : Float ) : Float{
 		height = (v<0)?0:v;
-		// Ensure callback is not recursively called
+		changed();
+		return v;
+	}
+	inline function changed(){
 		if (onChange != null){
 			var callback : Void -> Void = onChange;
 			onChange = null;
 			callback();
 			onChange = callback;
 		}
-		return v;
 	}
 
 }

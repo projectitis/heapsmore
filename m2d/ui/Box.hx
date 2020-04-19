@@ -1,6 +1,8 @@
 package m2d.ui;
 
+import h2d.Graphics;
 import h2d.Object;
+import h2d.RenderContext;
 import m2d.ui.BoxArea;
 import m2d.ui.BoxRect;
 import m2d.ui.BoxColorRect;
@@ -11,11 +13,11 @@ import m2d.ui.BoxColorRect;
  * 		Border
  * 			Padding
  * 				Content
- * In most cases, the reference position and size is based on border (like css box-model:border-box). So, if
- * you get box.width it will be the width of the content, padding and border. If you position the box using x
- * and y, it will be positioned based on the top-left corner of the border.
- * Box only contains values and does not do any rendering of it's own. The sub-class (or other) is responsible
- * for that.
+ * The reference position and size is based on border (like css box-model:border-box). So, if you get box.width
+ * it will be the width of the content, padding and border. If you position the box using x and y, it will be
+ * positioned based on the top-left corner of the border.
+ * Box is intended as a super class to be extended. Call redraw to update the graphics elements of Box (border
+ * and background).
  */
 class Box extends Object{
 
@@ -56,6 +58,11 @@ class Box extends Object{
 	public var content : BoxArea = new BoxArea();
 
 	/**
+	 * The background of the box (covers padding)
+	 */
+	public var background : BoxBackground = new BoxBackground();
+
+	/**
 	 * Width of border+padding+content (not margin)
 	 **/
 	public var width(get,set) : Float;
@@ -75,15 +82,30 @@ class Box extends Object{
 	 **/
 	public var minWidth(default,set) : Null<Float> = null;
 
-	 /**
-	  * Set a maximum height limit (includes content+padding+border)
-	  **/
+	/**
+	 * Set a maximum height limit (includes content+padding+border)
+	 **/
 	public var maxHeight(default,set) : Null<Float> = null;
 
-	 /**
-	  * Set a minimum height limit (includes content+padding+border)
-	  **/
+	/**
+	 * Set a minimum height limit (includes content+padding+border)
+	 **/
 	public var minHeight(default,set) : Null<Float> = null;
+
+	/**
+	 * The graphics object to draw the background to
+	 */
+	var backgroundCanvas : Graphics;
+
+	/**
+	 * The graphics object to draw the border to
+	 */
+	var borderCanvas : Graphics;
+
+	/**
+	 * Flag to indicate parameters have changed and a redraw is required
+	 */
+	var boxNeedsRedraw : Bool = false;
 
 	/**
 	 * Create a new box
@@ -91,11 +113,14 @@ class Box extends Object{
 	 * @param height 	Height of box
 	 **/
 	public function new( ?width : Float, ?height : Float, ?parent : Object ){
+		super(parent);
+		backgroundCanvas = new Graphics( this );
+		borderCanvas = new Graphics( this );
 		content.onChange = contentChange;
 		padding.onChange = boxChange;
 		border.onChangeSize = boxChange;
+		background.onChange = bgChange;
 		content.setSize( width, height );
-		super(parent);
 	}
 
 	/**
@@ -152,6 +177,7 @@ class Box extends Object{
 		h = v + ex;
 
 		content.onChange = callback;
+		boxNeedsRedraw = true;
 	}
 	/**
 	 * The size of the box (padding, border) has changed, so adjust content according to w,h
@@ -173,9 +199,15 @@ class Box extends Object{
 		content.height = v;
 
 		content.onChange = callback;
+		boxNeedsRedraw = true;
 	}
 
-
+	/**
+	 * Called when the background is changed
+	 */
+	function bgChange(){
+		boxNeedsRedraw = true;
+	}
 
 	/**
 	 * BORDER methods
@@ -195,6 +227,22 @@ class Box extends Object{
 		content.height = v - (padding.top + padding.bottom + border.top.size + border.bottom.size);
 		h = content.height;
 		return v;
+	}
+
+	/**
+	 * Draw the border and background
+	 * XXX: Border
+	 */
+	function boxRedraw(){
+		backgroundCanvas.x = border.left.size;
+		backgroundCanvas.y = border.top.size;
+		background.drawTo( backgroundCanvas, content.width+padding.left+padding.right, content.height+padding.top+padding.bottom );
+		boxNeedsRedraw = false;
+	}
+
+	override function draw(ctx:RenderContext) {
+		super.draw(ctx);
+		if (boxNeedsRedraw) boxRedraw();
 	}
 
 }

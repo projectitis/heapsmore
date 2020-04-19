@@ -75,44 +75,31 @@ class BoxRect{
 	 */
 	function set_top( v : Float ) : Float{
 		top = v;
-		// Ensure callback is not recursively called
-		if (onChange != null){
-			var callback : Void -> Void = onChange;
-			onChange = null;
-			callback();
-			onChange = callback;
-		}
+		changed();
 		return v;
 	}
 	function set_right( v : Float ) : Float{
 		right = v;
-		if (onChange != null){
-			var callback : Void -> Void = onChange;
-			onChange = null;
-			callback();
-			onChange = callback;
-		}
+		changed();
 		return v;
 	}
 	function set_bottom( v : Float ) : Float{
 		bottom = v;
-		if (onChange != null){
-			var callback : Void -> Void = onChange;
-			onChange = null;
-			callback();
-			onChange = callback;
-		}
+		changed();
 		return v;
 	}
 	function set_left( v : Float ) : Float{
 		left = v;
+		changed();
+		return v;
+	}
+	inline function changed(){
 		if (onChange != null){
 			var callback : Void -> Void = onChange;
 			onChange = null;
 			callback();
 			onChange = callback;
 		}
-		return v;
 	}
 
 }

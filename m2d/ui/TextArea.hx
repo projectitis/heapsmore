@@ -1,11 +1,12 @@
 package m2d.ui;
 
+import h2d.Graphics;
 import h2d.Drawable;
-import m2d.ui.Box;
 import h2d.Font;
 import h2d.RenderContext;
 import h2d.Tile;
 import h2d.TileGroup;
+import m2d.ui.Box;
 
 /**
  * Text alignment options.
@@ -57,6 +58,9 @@ private class TextLine {
  * 		Implement scrollH, scrollY, maxScrollH, maxScrollY
  * 		Implement background color and border
  * 		Ability to set height in number of lines (heightInLines? numLines?) also read?
+ * 		Implement character spacing. Fixed, or fractional?
+ * 		Change line spacing to fractional (e.g. 1.25, 1.5, 2.0 etc)
+ * 		If wrapAfter a . or , for example, the next line will start with space, which should be ignored
  */
 class TextArea extends Box{
 
@@ -113,6 +117,11 @@ class TextArea extends Box{
 	var linesHeight : Float = 0;
 
 	/**
+	 * The rendered background
+	 */
+	var bg : Graphics = null;
+
+	/**
 	 * The rendered characters
 	 */
 	var glyphs : TileGroup = null;
@@ -120,12 +129,12 @@ class TextArea extends Box{
 	/**
 	 * Flag to indicate that text calculations needs to update
 	 */
-	var needsUpdate : Bool = false;
+	var textAreaNeedsUpdate : Bool = false;
 
 	/**
-	 * Flag to indicate that text nees to be redrawn
+	 * Flag to indicate that text needs to be redrawn
 	 */
-	var needsRedraw : Bool = true;
+	var textAreaNeedsRedraw : Bool = true;
 
 	/**
 	 * Create a new TextField instance
@@ -147,9 +156,8 @@ class TextArea extends Box{
 		}
 		font = v;
 		glyphs = new TileGroup( (font==null)?null:font.tile, this );
-		glyphs.visible = false;
 		lines = null;
-		needsUpdate = true;
+		textAreaNeedsUpdate = true;
 		return v;
 	}
 
@@ -160,7 +168,7 @@ class TextArea extends Box{
 		if (text!=v){
 			text = v;
 			lines = null;
-			needsUpdate = true;
+			textAreaNeedsUpdate = true;
 		}
 		return v;
 	}
@@ -171,7 +179,7 @@ class TextArea extends Box{
 	function set_align( v : Align ) : Align{
 		if (align!=v){
 			align = v;
-			needsUpdate = true;
+			textAreaNeedsUpdate = true;
 		}
 		return v;
 	}
@@ -182,18 +190,18 @@ class TextArea extends Box{
 	 function set_lineSpacing( v : Int ) : Int{
 		if (lineSpacing!=v){
 			lineSpacing = v;
-			needsUpdate = true;
+			textAreaNeedsUpdate = true;
 		}
 		return v;
 	}
 
 	/**
-	 * Set color
+	 * Set text color
 	 */
 	 function set_color( v : Int ) : Int{
 		if (color!=v){
 			color = v;
-			needsUpdate = true;
+			textAreaNeedsUpdate = true;
 		}
 		return v;
 	}
@@ -218,7 +226,7 @@ class TextArea extends Box{
 	 * Ensure that if someone tries to read the width that we update first
 	 */
 	override function get_width() : Float{
-		if (needsUpdate) update();
+		if (textAreaNeedsUpdate) textAreaUpdate();
 		return super.get_width();
 	}
 
@@ -226,14 +234,14 @@ class TextArea extends Box{
 	 * Ensure that if someone tries to read the width that we update first
 	 */
 	 override function get_height() : Float{
-		if (needsUpdate) update();
+		if (textAreaNeedsUpdate) textAreaUpdate();
 		return super.get_height();
 	}
 
 	/**
 	 * Update everything ready for a redraw
 	 */
-	function update(){
+	function textAreaUpdate(){
 		// Process text to account for wrapping
 		if (lines==null){
 			lines = new Array();
@@ -278,9 +286,8 @@ class TextArea extends Box{
 				}
 				else if (wc_prev==WrapAfter) {
 					ei = i;
-					ei_wc = WrapBefore;
+					ei_wc = WrapAfter;
 					ei_w = lw - ((ch!=null)?(ch.width + ch.getKerningOffset(cc_prev)):0);
-//trace('  Set line end (last was WrapAfter)');
 				}
 				if (((lw>mw) && (ei>0)) || (wc == WrapAlways)){
 					// Wrap here. The last character width should be the width of the glyph, not the whole stride
@@ -313,8 +320,8 @@ class TextArea extends Box{
 		}
 //for (l in lines) trace(l.text+'\t\t'+l.width);
 //trace('Content width: ${Math.ceil(content.width)} Content height:${Math.ceil(content.height)}');
-		needsUpdate = false;
-		needsRedraw = true;
+		textAreaNeedsUpdate = false;
+		textAreaNeedsRedraw = true;
 	}
 
 	/**
@@ -333,7 +340,7 @@ class TextArea extends Box{
 	/**
 	 * Called to redraw all glyph tiles
 	 */
-	function redraw(){
+	function textAreaRedraw(){
 		glyphs.clear();
 		glyphs.setDefaultColor( color, 1 );
 		var mw : Float = Math.floor(content.width);		// Max width
@@ -425,7 +432,7 @@ class TextArea extends Box{
 					// Add full tile
 					else{
 						// If first char in line, do not offset it (Left, Justify only)
-						if (i==0) x -= ch.t.dx;
+						//if (i==0) x -= ch.t.dx;
 						glyphs.add( Math.round(x), Math.round(y), ch.t);
 					}
 					x += ch.width;
@@ -436,6 +443,7 @@ class TextArea extends Box{
 			y += font.lineHeight + lineSpacing;
 			if (y>=mh) break; // If overflow y, stop
 		}
+		textAreaNeedsRedraw = false;
 	}
 
 	/**
@@ -453,18 +461,16 @@ class TextArea extends Box{
 	 * Called by system when TextArea is redrawn
 	 */
 	override function draw(ctx:RenderContext) {
-		if (needsUpdate) update();
-		if (!needsRedraw) return;
+		super.draw(ctx);
+
+		if (textAreaNeedsUpdate) textAreaUpdate();
+		if (!textAreaNeedsRedraw) return;
 		if (font==null) return;
 
-		redraw();
-
+		textAreaRedraw();
 		glyphs.x = border.left.size + padding.left;
 		glyphs.y = border.top.size + padding.top;
 		glyphs.draw( ctx );
-		glyphs.visible = true;
-
-		needsRedraw = false;
 	}
 
 }
