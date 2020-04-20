@@ -32,17 +32,23 @@ class Box extends Object{
 	 var h : Float = 0;
 
 	/**
-	 * The margins of the box. Adjust these directly, or use the margin_ methods.
+	 * The margins of the box.
 	 * The margins sit outside the border and determine the spacing between Boxes.
 	 */
 	public var margin : BoxRect = new BoxRect();
 
 	/**
-	 * The borders of the box. Adjust these directly, or use the border_ methods.
+	 * The borders of the box.
 	 * The border sits outside the padding. Each side has a size and a color.
 	 */
 	public var border : BoxColorRect = new BoxColorRect();
 
+	/**
+	 * The radius for the corners of background and border. Currently buggy with
+	 * background image (ok with background color)
+	 */
+	public var cornerRadius(default,set) : Float = 0;
+	
 	/**
 	 * The padding of the box. Adjust these directly, or use the padding_ methods.
 	 * The padding provides space around the content area. It sits between the content
@@ -121,6 +127,14 @@ class Box extends Object{
 		border.onChangeSize = boxChange;
 		background.onChange = bgChange;
 		content.setSize( width, height );
+	}
+
+	function set_cornerRadius( v : Float ) : Float{
+		if (cornerRadius!=v){
+			cornerRadius = (v<0)?0:v;
+			boxNeedsRedraw = true;
+		}
+		return v;
 	}
 
 	/**
@@ -236,7 +250,7 @@ class Box extends Object{
 	function boxRedraw(){
 		backgroundCanvas.x = border.left.size;
 		backgroundCanvas.y = border.top.size;
-		background.drawTo( backgroundCanvas, content.width+padding.left+padding.right, content.height+padding.top+padding.bottom );
+		background.drawTo( backgroundCanvas, content.width+padding.left+padding.right, content.height+padding.top+padding.bottom, cornerRadius );
 		boxNeedsRedraw = false;
 	}
 

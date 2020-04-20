@@ -55,8 +55,9 @@ private class TextLine {
  *		Auto-width, auto-height, or fixed size
  *		max- and min- width and height (works with auto-width and height)
  * Todo:
- * 		Implement scrollH, scrollY, maxScrollH, maxScrollY
+ * 		Implement scrollH, scrollY, maxScrollH, maxScrollY (see h2d.Mask)
  * 		Implement border
+ * 		Implement border radius
  */
 class TextArea extends Box{
 
