@@ -34,7 +34,7 @@ class Example extends hxd.App{
 		tf.padding.setSize(20);
 		tf.background.setColor( 0x000000, 0.1 );
 		tf.color = 0x000000;
-		tf.lineSpacing = Math.round(f.lineHeight/4); // Note: this will change to be able to set 1.25 in the future
+		tf.lineSpacing = 1.25;
 
 		// NOTE: Comment out all except one of the examples at a time!
 		

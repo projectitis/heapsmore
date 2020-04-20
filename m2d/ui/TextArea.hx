@@ -54,13 +54,11 @@ private class TextLine {
  *		Auto-width, auto-height, or fixed size
  *		max- and min- width and height (works with auto-width and height)
  * Todo:
- * 		Right align (and right edge of justify) is not super accurate. Glyphs don't line up nicely on right edge
  * 		Implement scrollH, scrollY, maxScrollH, maxScrollY
- * 		Implement background color and border
+ * 		Implement border
  * 		Ability to set height in number of lines (heightInLines? numLines?) also read?
  * 		Implement character spacing. Fixed, or fractional?
  * 		Change line spacing to fractional (e.g. 1.25, 1.5, 2.0 etc)
- * 		If wrapAfter a . or , for example, the next line will start with space, which should be ignored
  */
 class TextArea extends Box{
 
@@ -99,7 +97,7 @@ class TextArea extends Box{
 	/**
 	 * Additional spacing between lines
 	 */
-	public var lineSpacing(default,set) : Int = 0;
+	public var lineSpacing(default,set) : Float = 1;
 
 	/**
 	 * processed text with wrapping
@@ -187,7 +185,7 @@ class TextArea extends Box{
 	/**
 	 * Set line spacing
 	 */
-	 function set_lineSpacing( v : Int ) : Int{
+	 function set_lineSpacing( v : Float ) : Float{
 		if (lineSpacing!=v){
 			lineSpacing = v;
 			textAreaNeedsUpdate = true;
@@ -254,6 +252,7 @@ class TextArea extends Box{
 			else{
 				mw = Math.floor(content.width);
 			}
+			var ls : Float = font.lineHeight*(lineSpacing-1);	// Line spacing
 			var lw : Float = 0;					// Line width
 			var lw_prev : Float;				// Line width at previous character
 			var ch : Null<FontChar>;			// Character
@@ -334,7 +333,7 @@ class TextArea extends Box{
 			}
 
 			// Calculate text width and height (note: last line doesn't have line spacing applied)
-			linesHeight = lines.length * (font.lineHeight + lineSpacing) - lineSpacing;
+			linesHeight = lines.length * (font.lineHeight + ls) - ls;
 			if (autoWidth) content.width = linesWidth;
 			if (autoHeight) content.height = linesHeight;
 		}
@@ -371,8 +370,9 @@ class TextArea extends Box{
 	function textAreaRedraw(){
 		glyphs.clear();
 		glyphs.setDefaultColor( color, 1 );
-		var mw : Float = Math.floor(content.width);		// Max width
-		var mh : Float = Math.floor(content.height);	// Max height
+		var ls : Float = font.lineHeight*(lineSpacing-1);	// Line spacing
+		var mw : Float = Math.floor(content.width);			// Max width
+		var mh : Float = Math.floor(content.height);		// Max height
 		var x : Float;
 		var y : Float = 0;
 		var js : Float = 0;			// Justify spacing
@@ -469,7 +469,7 @@ trace('|${line.text}|');
 					if (x>=mw) break; // If overflow x, skip to next line
 				}
 			}
-			y += font.lineHeight + lineSpacing;
+			y += font.lineHeight + ls;
 			if (y>=mh) break; // If overflow y, stop
 		}
 		textAreaNeedsRedraw = false;
