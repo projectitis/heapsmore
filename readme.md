@@ -15,7 +15,10 @@ The package structure is similar to Heaps:
 
 ## Changes
 __2020-04-20__
+
 * TextArea: Fixed glyph alignment. Added JustifyFull. Added character spacing. Lots of improvements.
 * BoxBackground: Fixed percentage-sized backgrounds. Added corner radius (only works with colored backgrounds)
+
 __2020-04-19__
+
 * TextArea: Fixed width and maxWidth
