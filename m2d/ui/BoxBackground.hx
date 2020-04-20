@@ -237,7 +237,7 @@ class BoxBackground{
 	 * @param width 	The width of the background
 	 * @param height 	The height of the background
 	 */
-	public function drawTo( canvas : Graphics, width : Float, height : Float ) {
+	public function drawTo( canvas : Graphics, width : Float, height : Float, radius : Float = 0 ) {
 		canvas.clear();
 		if (!visible) return;
 
@@ -246,96 +246,75 @@ class BoxBackground{
 			var a : Float = ((color>>24) & 255)/255;
 			if (a==0) a = 1;
 			canvas.beginFill( color, a );
-			canvas.drawRect(0,0,width,height);
+			if (radius>0) canvas.drawRoundedRect(0,0,width,height,radius);
+			else canvas.drawRect(0,0,width,height);
 			canvas.endFill();
 		}
 		if (image!=null){
+			var sx : Float;
+			var sy : Float;
+			var w : Float;
+			var h : Float;
+			var x : Float;
+			var y : Float;
 			switch (imageSize){
 				case Fit: {
-					var s : Float = Math.min(width/image.width, height/image.height);
-					var w : Float = image.width*s;
-					var h : Float = image.height*s;
-					var x : Float = calculateImagePosH( w, width );
-					var y : Float = calculateImagePosV( h, height );
-					canvas.beginTileFill(x,y,s,s,image);
-					if (imageRepeat){
-						canvas.tileWrap = true;
-						canvas.drawRect(0,0,width,height);
-					}
-					else{
-						canvas.tileWrap = false;
-						canvas.drawRect(x,y,w,h);
-					}
-					canvas.endFill();
+					sx = sy = Math.min(width/image.width, height/image.height);
+					w = image.width*sx;
+					h = image.height*sy;
+					x = calculateImagePosH( w, width );
+					y = calculateImagePosV( h, height );
 				}
 				case Fill: {
-					var s : Float = Math.max(width/image.width, height/image.height);
-					var w : Float = image.width*s;
-					var h : Float = image.height*s;
-					var x : Float = calculateImagePosH( w, width );
-					var y : Float = calculateImagePosV( h, height );
-					canvas.beginTileFill(x,y,s,s,image);
-					canvas.tileWrap = false;
-					canvas.drawRect(0,0,width,height);
-					canvas.endFill();
+					sx = sy = Math.max(width/image.width, height/image.height);
+					w  = image.width*sx;
+					h  = image.height*sy;
+					x  = calculateImagePosH( w, width );
+					y  = calculateImagePosV( h, height );
 				}
 				case Normal: {
-					var w : Float = calculateImageWidth();
-					var h : Float = calculateImageHeight();
-					var sx : Float = w/image.width;
-					var sy : Float = h/image.height;
-					var x : Float = calculateImagePosH( w, width );
-					var y : Float = calculateImagePosV( h, height );
-					canvas.beginTileFill(x,y,sx,sy,image);
-					if (imageRepeat){
-						canvas.tileWrap = true;
-						canvas.drawRect(0,0,width,height);
-					}
-					else{
-						canvas.tileWrap = false;
-						if (x<0){
-							w += x;
-							x = 0;
-						}
-						if (y<0){
-							h += y;
-							y = 0;
-						}
-						if ((x+w)>width) w = width-x;
-						if ((y+h)>height) h = height-y;
-						canvas.drawRect(x,y,w,h);
-					}
-					canvas.endFill();
+					w = calculateImageWidth();
+					h = calculateImageHeight();
+					sx = w/image.width;
+					sy = h/image.height;
+					x = calculateImagePosH( w, width );
+					y = calculateImagePosV( h, height );
 				}
 				case Percent: {
-					var w : Float = calculateImageWidthPC( width, height );
-					var h : Float = calculateImageHeightPC( width, height );
-					var sx : Float = w/image.width;
-					var sy : Float = h/image.height;
-					var x : Float = calculateImagePosH( w, width );
-					var y : Float = calculateImagePosV( h, height );
-					canvas.beginTileFill(x,y,sx,sy,image);
-					if (imageRepeat){
-						canvas.tileWrap = true;
-						canvas.drawRect(0,0,width,height);
-					}
-					else{
-						canvas.tileWrap = false;
-						if (x<0){
-							w += x;
-							x = 0;
-						}
-						if (y<0){
-							h += y;
-							y = 0;
-						}
-						if ((x+w)>width) w = width-x;
-						if ((y+h)>height) h = height-y;
-						canvas.drawRect(x,y,w,h);
-					}
-					canvas.endFill();
+					w = calculateImageWidthPC( width, height );
+					h = calculateImageHeightPC( width, height );
+					sx  = w/image.width;
+					sy  = h/image.height;
+					x = calculateImagePosH( w, width );
+					y = calculateImagePosV( h, height );
 				}
 			}
+			canvas.beginTileFill(x,y,sx,sy,image);
+			if (imageRepeat){
+				canvas.tileWrap = true;
+				if (radius>0) canvas.drawRoundedRect(0,0,width,height,radius);
+				else canvas.drawRect(0,0,width,height);
+			}
+			else{
+				if (x<0){
+					w += x;
+					x = 0;
+				}
+				if (y<0){
+					h += y;
+					y = 0;
+				}
+				if ((x+w)>width){
+					w = width-x;
+				}
+				if ((y+h)>height){
+					h = height-y;
+				}
+				canvas.tileWrap = false;
+				if (radius>0) canvas.drawRoundedRect(x,y,w,h,radius);
+				else canvas.drawRect(x,y,w,h);
+			}
+			canvas.endFill();
 		}
 	}
 
@@ -389,7 +368,7 @@ class BoxBackground{
 
 	function calculateImageHeightPC( w : Float, h : Float ) : Float{
 		if (imageHeight>0) return imageHeight * h;
-		if (imageWidth>0) return (imageWidth * w) * (image.width/image.height);
+		if (imageWidth>0) return (imageWidth * w) * (image.height/image.width);
 		return image.height;
 	}
 
