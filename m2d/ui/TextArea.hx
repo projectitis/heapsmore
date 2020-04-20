@@ -57,8 +57,6 @@ private class TextLine {
  * Todo:
  * 		Implement scrollH, scrollY, maxScrollH, maxScrollY
  * 		Implement border
- * 		Ability to set height in number of lines (heightInLines? numLines?) also read?
- * 		Implement character spacing. Fixed, or fractional?
  */
 class TextArea extends Box{
 
@@ -80,7 +78,15 @@ class TextArea extends Box{
 	/**
 	 * The text alignment
 	 */
-	public var align(default,set) : Align = Align.Left;
+	public var align(default,set) : Align = Left;
+
+	/**
+	 * Get or set the height of the text area in lines of text using the current font and line spacing.
+	 * If setting the height this way, ensure that the font, the lines spacing, and the padding and border
+	 * have already been set. When getting the height, partial lines are counted (so 12 and-a-bit lines
+	 * will return 13).
+	 */
+	public var heightInLines(get,set) : Int;
 
 	/**
 	 * Automatically adjust width while keeping height fixed. If both are set, will make the text area
@@ -102,7 +108,7 @@ class TextArea extends Box{
 	/**
 	 * Additional spacing between characters in pixels. Default is 0
 	 */
-	 public var characterSpacing(default,set) : Float = 0;
+	public var characterSpacing(default,set) : Float = 0;
 
 	/**
 	 * processed text with wrapping
@@ -190,7 +196,7 @@ class TextArea extends Box{
 	/**
 	 * Set line spacing
 	 */
-	 function set_lineSpacing( v : Float ) : Float{
+	function set_lineSpacing( v : Float ) : Float{
 		if (lineSpacing!=v){
 			lineSpacing = v;
 			textAreaNeedsUpdate = true;
@@ -201,7 +207,7 @@ class TextArea extends Box{
 	/**
 	 * Set character spacing
 	 */
-	 function set_characterSpacing( v : Float ) : Float{
+	function set_characterSpacing( v : Float ) : Float{
 		if (characterSpacing!=v){
 			characterSpacing = v;
 			textAreaNeedsUpdate = true;
@@ -212,7 +218,7 @@ class TextArea extends Box{
 	/**
 	 * Set text color
 	 */
-	 function set_color( v : Int ) : Int{
+	function set_color( v : Int ) : Int{
 		if (color!=v){
 			color = v;
 			textAreaNeedsUpdate = true;
@@ -221,10 +227,32 @@ class TextArea extends Box{
 	}
 
 	/**
+	 * Get height of content in lines
+	 */
+	function get_heightInLines() : Int{
+		if (textAreaNeedsUpdate) textAreaUpdate();
+		var ls : Float = font.lineHeight*(lineSpacing-1);	// Line spacing
+		var ch : Float = content.height + ls;		
+		return Math.ceil(ch / (font.lineHeight+ls));
+	}
+
+	/**
+	 * Set the height of content in lines
+	 */
+	function set_heightInLines( v : Int ) : Int{
+		var ls : Float = font.lineHeight*(lineSpacing-1);	// Line spacing
+		content.height = v * (font.lineHeight+ls) - ls;
+		autoHeight = false;
+		textAreaNeedsUpdate = true;
+		return v;
+	}
+
+	/**
 	 * Override width property so that if it is set, the autoWidth feature is disabled. 
 	 */
 	override function set_width( v : Float ) : Float{
 		autoWidth = false;
+		textAreaNeedsUpdate = true;
 		return super.set_width(v);
 	}
 
@@ -233,6 +261,7 @@ class TextArea extends Box{
 	 */
 	override function set_height( v : Float ) : Float{
 		autoHeight = false;
+		textAreaNeedsUpdate = true;
 		return super.set_height(v);
 	}
 
@@ -247,7 +276,7 @@ class TextArea extends Box{
 	/**
 	 * Ensure that if someone tries to read the width that we update first
 	 */
-	 override function get_height() : Float{
+	override function get_height() : Float{
 		if (textAreaNeedsUpdate) textAreaUpdate();
 		return super.get_height();
 	}
