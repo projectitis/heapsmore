@@ -255,6 +255,7 @@ class TextArea extends Box{
 				mw = Math.floor(content.width);
 			}
 			var lw : Float = 0;					// Line width
+			var lw_prev : Float;				// Line width at previous character
 			var ch : Null<FontChar>;			// Character
 			var cc : Int = -1;					// Current character's code
 			var cc_prev : Int = -1;				// Previous character's code
@@ -264,6 +265,7 @@ class TextArea extends Box{
 			var ei_w : Float = 0;				// Width of line at end index
 			var wc : WrapChar = WrapNone;		// Wrap type for current char
 			var wc_prev : WrapChar = WrapNone;	// Wrap type for previous char
+			var skip : Bool = false;
 			var i = 0;
 			while( i < text.length ) {
 				cc_prev = cc;
@@ -271,24 +273,39 @@ class TextArea extends Box{
 				cc = text.charCodeAt(i);
 				wc = getWrapChar(cc);
 //trace('$i: ${String.fromCharCode(cc)}');
+
+				// If we've just wrapped, we might skip whitespace at the start of the line
+				if (skip){
+					if (wc==WrapOn){
+						i++;
+						si = i;
+						continue;
+					}
+					else if (wc==WrapAlways){
+						i++;
+						si = i;
+						ei = i;
+						skip = false;
+						continue;
+					}
+					skip = false;
+				}
+
 				// Increase width by character stride if glyph exists
 				ch = font.getChar(cc);
-//trace('\n  dx:${ch.t.dx}\n  dy:${ch.t.dy}');
+				lw_prev = lw;
 				if (ch!=null) lw += ch.width + ch.getKerningOffset(cc_prev);
-				// Mark line ending if we should
-				if (wc_prev==WrapNone) {
-					if (wc!=WrapNone){
-						ei = i;
-						ei_wc = wc;
-						ei_w = lw;
-//trace('  Set line end (last was WrapNone, this is not)');
-					}
-				}
-				else if (wc_prev==WrapAfter) {
+
+				// Mark possible line ending. This happens if this character is a new
+				// possible wrap point, or if the previous character was a possible wrap point.
+				if (((wc_prev==WrapNone) && (wc!=WrapNone) && (wc!=WrapAfter)) || (wc_prev==WrapAfter)) {
 					ei = i;
-					ei_wc = WrapAfter;
-					ei_w = lw - ((ch!=null)?(ch.width + ch.getKerningOffset(cc_prev)):0);
+					ei_wc = wc;
+					ei_w = lw_prev;
+//trace('  Set line end (last was $wc_prev, this is $wc)');
 				}
+
+				// If we've reached maximum width, it's time to wrap
 				if (((lw>mw) && (ei>0)) || (wc == WrapAlways)){
 					// Wrap here. The last character width should be the width of the glyph, not the whole stride
 //trace('    Line from $si to $ei. ei_wc is $ei_wc, wc is $wc');
@@ -297,6 +314,7 @@ class TextArea extends Box{
 					// Determine next character to start from
 					if ((ei_wc==WrapAlways) || (ei_wc==WrapOn)) i = ei+1;
 					else i = ei;
+					if (ei_wc==WrapAfter) skip = true;
 					si = i;
 					lw = 0;
 					ei = 0;
@@ -307,12 +325,14 @@ class TextArea extends Box{
 				}
 				i++;
 			} // step chars
-			// Rest of string
+
+			// Rest of string if we haven't hit the maximum width but no chars left
 			if ((i-1)>si){
 //trace('    Remaining line from $si to $i');				
 				lines.push( new TextLine( text.substring(si,i), lw, true) );
 				linesWidth = Math.max(linesWidth,lw);
 			}
+
 			// Calculate text width and height (note: last line doesn't have line spacing applied)
 			linesHeight = lines.length * (font.lineHeight + lineSpacing) - lineSpacing;
 			if (autoWidth) content.width = linesWidth;
@@ -331,10 +351,18 @@ class TextArea extends Box{
 	 */
 	 function getWrapChar( c : Int ) : WrapChar {
 		if (c=='\n'.code) return WrapAlways;
-		if ((c=='-'.code) || (c=='+'.code) || (c=='='.code) || (c=='.'.code) || (c==','.code) || (c=='/'.code) || (c=='\\'.code)) return WrapAfter;
-		//if ((c=='('.code) || (c=='['.code) || (c=='{'.code) || (c=='<'.code)) return WrapBefore;
+		if (charInStr(c,'-+=.,/\\)]}>')) return WrapAfter;
+		if (charInStr(c,'([{<')) return WrapBefore;
 		if ((c<33) || (c==127)) return WrapOn;
 		return WrapNone;
+	}
+
+	/**
+	 * Return true if char is in the string
+	 */
+	function charInStr( c : Int, s : String ) : Bool{
+		for (i in 0...s.length) if (StringTools.fastCodeAt(s,i)==c) return true;
+		return false;
 	}
 
 	/**
@@ -360,6 +388,7 @@ class TextArea extends Box{
 		var tdh : Float = 0;		// Difference in tile height
 		// Step lines
 		for (line in lines){
+trace('|${line.text}|');
 			x = 0;
 			i = 0;
 			cc = -1;
