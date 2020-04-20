@@ -12,12 +12,13 @@ import m2d.ui.Box;
  * Text alignment options.
  */
 enum Align {
-	Left;
-	Right;
-	Center;
-	Justify;
-	JustifyRight;
-	JustifyCenter;
+	Left;			// Left align
+	Right;			// Right align
+	Center;			// Center align
+	Justify;		// Justify. Partial lines align left
+	JustifyRight;	// Justify. Partial lines align right
+	JustifyCenter;	// Justify. Partial lines align center
+	JustifyFull;	// Justify all lines
 }
 
 /**
@@ -58,7 +59,6 @@ private class TextLine {
  * 		Implement border
  * 		Ability to set height in number of lines (heightInLines? numLines?) also read?
  * 		Implement character spacing. Fixed, or fractional?
- * 		Change line spacing to fractional (e.g. 1.25, 1.5, 2.0 etc)
  */
 class TextArea extends Box{
 
@@ -95,9 +95,14 @@ class TextArea extends Box{
 	public var autoHeight : Bool = true;
 
 	/**
-	 * Additional spacing between lines
+	 * Additional spacing between lines. Based on the font lineHeight (1=default)
 	 */
 	public var lineSpacing(default,set) : Float = 1;
+
+	/**
+	 * Additional spacing between characters in pixels. Default is 0
+	 */
+	 public var characterSpacing(default,set) : Float = 0;
 
 	/**
 	 * processed text with wrapping
@@ -194,6 +199,17 @@ class TextArea extends Box{
 	}
 
 	/**
+	 * Set character spacing
+	 */
+	 function set_characterSpacing( v : Float ) : Float{
+		if (characterSpacing!=v){
+			characterSpacing = v;
+			textAreaNeedsUpdate = true;
+		}
+		return v;
+	}
+
+	/**
 	 * Set text color
 	 */
 	 function set_color( v : Int ) : Int{
@@ -253,6 +269,7 @@ class TextArea extends Box{
 				mw = Math.floor(content.width);
 			}
 			var ls : Float = font.lineHeight*(lineSpacing-1);	// Line spacing
+			var cs : Float = characterSpacing;	// Additional character spacing
 			var lw : Float = 0;					// Line width
 			var lw_prev : Float;				// Line width at previous character
 			var ch : Null<FontChar>;			// Character
@@ -293,7 +310,10 @@ class TextArea extends Box{
 				// Increase width by character stride if glyph exists
 				ch = font.getChar(cc);
 				lw_prev = lw;
-				if (ch!=null) lw += ch.width + ch.getKerningOffset(cc_prev);
+				if (ch!=null){
+					if (lw>0) lw += cs; // Only between characters
+					lw += ch.width + ch.getKerningOffset(cc_prev);
+				}
 
 				// Mark possible line ending. This happens if this character is a new
 				// possible wrap point, or if the previous character was a possible wrap point.
@@ -375,6 +395,7 @@ class TextArea extends Box{
 		var mh : Float = Math.floor(content.height);		// Max height
 		var x : Float;
 		var y : Float = 0;
+		var cs : Float = 0; 		// Character spacing 
 		var js : Float = 0;			// Justify spacing
 		var cc : Int;				// Character's code
 		var cc_prev : Int;			// Previous character's code
@@ -386,27 +407,45 @@ class TextArea extends Box{
 		var tdy : Float = 0;		// Difference in tile y
 		var tdw : Float = 0;		// Difference in tile width
 		var tdh : Float = 0;		// Difference in tile height
+		var ns : Int = 0;			// Number of spaces
 		// Step lines
 		for (line in lines){
-trace('|${line.text}|');
 			x = 0;
 			i = 0;
 			cc = -1;
 			tdw = 0;
+			cs = characterSpacing;
 			// Adjust start x based on alignment 
 			js = 0;
 			switch (align){
 				case Right: x = mw - line.width;
 				case Center: x = (mw - line.width) / 2;
 				case Justify: {
-					if (!line.natural) js = (mw - line.width) / numSpaces(line.text);
+					if (!line.natural){
+						ns = numSpaces(line.text);
+						if (ns==0) cs = (mw - line.width) / (line.text.length-1);
+						else js = (mw - line.width) / numSpaces(line.text);
+					}
 				}
 				case JustifyRight: {
 					if (line.natural) x = mw - line.width;
-					else js = (mw - line.width) / numSpaces(line.text);
+					else{
+						ns = numSpaces(line.text);
+						if (ns==0) cs = (mw - line.width) / (line.text.length-1);
+						else js = (mw - line.width) / numSpaces(line.text);
+					}
 				}
 				case JustifyCenter: {
-					if (line.natural) x = (mw - line.width) / 2;
+					if (line.natural) x = mw - line.width;
+					else{
+						ns = numSpaces(line.text);
+						if (ns==0) cs = (mw - line.width) / (line.text.length-1);
+						else js = (mw - line.width) / ns;
+					}
+				}
+				case JustifyFull: {
+					ns = numSpaces(line.text);
+					if (ns==0) cs = (mw - line.width) / (line.text.length-1);
 					else js = (mw - line.width) / numSpaces(line.text);
 				}
 				default: {}
@@ -468,6 +507,7 @@ trace('|${line.text}|');
 					if (cc == ' '.code) x += js;
 					if (x>=mw) break; // If overflow x, skip to next line
 				}
+				x += cs;
 			}
 			y += font.lineHeight + ls;
 			if (y>=mh) break; // If overflow y, stop
