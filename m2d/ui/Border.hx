@@ -39,7 +39,7 @@ class Border{
 	 * Size
 	 */
 	 function set_size( v : Float ) : Float{
-		var n = hxd.Math.imax(0,v);
+		var n = hxd.Math.max(0,v);
 		if (this.size != n){
 			this.size = n;
 			if (onChangeSize!=null){

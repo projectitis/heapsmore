@@ -274,6 +274,13 @@ class Box extends Object{
 	}
 
 	/**
+	 * Called when the position is updated
+	 */
+	function positionChange(){
+
+	}
+
+	/**
 	 * BORDER methods
 	 **/
 	function get_width() : Float{
