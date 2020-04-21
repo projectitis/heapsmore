@@ -1,9 +1,9 @@
 package m2d.ui;
 
 /**
- * css-style box model
+ * One side of a border
  */
-class BoxColor{
+class Border{
 
 	/**
 	 * Size of a BoxColor will never be negative
@@ -39,8 +39,15 @@ class BoxColor{
 	 * Size
 	 */
 	 function set_size( v : Float ) : Float{
-		this.size = (v<0)?0:v;
-		if (onChangeSize!=null) onChangeSize();
+		if (this.size != v){
+			this.size = (v<0)?0:v;
+			if (onChangeSize!=null){
+				var callback : Void -> Void = onChangeSize;
+				onChangeSize = null;
+				callback();
+				onChangeSize = callback;
+			}
+		}
 		return v;
 	}
 
@@ -48,8 +55,15 @@ class BoxColor{
 	 * Color
 	 */
 	function set_color( c : Int ) : Int{
-		this.color = (c<0)?0:c;
-		if (onChangeColor!=null) onChangeSize();
+		if (this.color != c){
+			this.color = c;
+			if (onChangeColor!=null){
+				var callback : Void -> Void = onChangeColor;
+				onChangeColor = null;
+				callback();
+				onChangeColor = callback;
+			}
+		}
 		return c;
 	}
 

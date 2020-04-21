@@ -1,9 +1,9 @@
 package m2d.ui;
 
 /**
- * css-style box model
+ * Area with width and height. Used internally by UI elements.
  */
-class BoxArea{
+class Area{
 
 	/**
 	 * Get or set the width. Actually calls onWidth, which must be handled by the parent.

@@ -25,9 +25,9 @@ enum BackgroundPosition {
 }
 
 /**
- * Background for Box elements. User drawTo to render the background to a Graphics object.
+ * Background for UI elements. User drawTo to render the background to a Graphics object.
  */
-class BoxBackground{
+class Background{
 
 	/**
 	 * The background color as RGB. If an image is set, this is below the image. The color

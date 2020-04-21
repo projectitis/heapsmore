@@ -1,9 +1,9 @@
 package m2d.ui;
 
 /**
- * css-style box model
+ * Rect for UI elements that describes 4 sides. Used internally by UI elements
  */
-class BoxRect{
+class SideRect{
 
 	/**
 	 * Size of top

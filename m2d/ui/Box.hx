@@ -3,12 +3,9 @@ package m2d.ui;
 import h2d.Graphics;
 import h2d.Object;
 import h2d.RenderContext;
-import m2d.ui.BoxArea;
-import m2d.ui.BoxRect;
-import m2d.ui.BoxColorRect;
 
 /**
- * css-style box model
+ * css-style box model. Box is very similar to an HTML 'div'.
  * 	Margin
  * 		Border
  * 			Padding
@@ -35,13 +32,13 @@ class Box extends Object{
 	 * The margins of the box.
 	 * The margins sit outside the border and determine the spacing between Boxes.
 	 */
-	public var margin : BoxRect = new BoxRect();
+	public var margin : SideRect = new SideRect();
 
 	/**
 	 * The borders of the box.
 	 * The border sits outside the padding. Each side has a size and a color.
 	 */
-	public var border : BoxColorRect = new BoxColorRect();
+	public var border : Borders = new Borders();
 
 	/**
 	 * The radius for the corners of background and border. Currently buggy with
@@ -54,19 +51,19 @@ class Box extends Object{
 	 * The padding provides space around the content area. It sits between the content
 	 * and the border.
 	 */
-	public var padding : BoxRect = new BoxRect();
+	public var padding : SideRect = new SideRect();
 
 	/**
 	 * The content area of the box. Adjust this directly, or use the content_ methods.
 	 * This holds the actual content of the box. The usual behaviour is that no visual
 	 * content extends outside this area - i.e. the contents are clipped to this area.
 	 */
-	public var content : BoxArea = new BoxArea();
+	public var content : Area = new Area();
 
 	/**
 	 * The background of the box (covers padding)
 	 */
-	public var background : BoxBackground = new BoxBackground();
+	public var background : Background = new Background();
 
 	/**
 	 * Width of border+padding+content (not margin)
@@ -127,6 +124,7 @@ class Box extends Object{
 		border.onChangeSize = boxChange;
 		background.onChange = bgChange;
 		content.setSize( width, height );
+
 	}
 
 	function set_cornerRadius( v : Float ) : Float{
@@ -248,9 +246,12 @@ class Box extends Object{
 	 * XXX: Border
 	 */
 	function boxRedraw(){
+		border.drawTo( borderCanvas, width, height, cornerRadius );
+
 		backgroundCanvas.x = border.left.size;
 		backgroundCanvas.y = border.top.size;
 		background.drawTo( backgroundCanvas, content.width+padding.left+padding.right, content.height+padding.top+padding.bottom, cornerRadius );
+
 		boxNeedsRedraw = false;
 	}
 
