@@ -14,10 +14,16 @@ The package structure is similar to Heaps:
 * __examples__ - Examples :)
 
 ## Changes
+
+__2020-04-21__
+
+* Color: Added 140 predefined colors (the css3 colors). Added color helpers
+* Borders: Added border rendering (no radius support yet)
+
 __2020-04-20__
 
-* TextArea: Fixed glyph alignment. Added JustifyFull. Added character spacing. Lots of improvements.
-* BoxBackground: Fixed percentage-sized backgrounds. Added corner radius (only works with colored backgrounds)
+* TextArea: Fixed glyph alignment. Added JustifyFull. Added character spacing. Lots of improvements
+* Background: Fixed percentage-sized backgrounds. Added corner radius (only works with colored backgrounds)
 
 __2020-04-19__
 
