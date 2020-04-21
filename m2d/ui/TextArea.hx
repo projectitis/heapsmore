@@ -529,8 +529,6 @@ class TextArea extends Box{
 					}
 					// Add full tile
 					else{
-						// If first char in line, do not offset it (Left, Justify only)
-						//if (i==0) x -= ch.t.dx;
 						glyphs.add( Math.round(x), Math.round(y), ch.t);
 					}
 					x += ch.width;

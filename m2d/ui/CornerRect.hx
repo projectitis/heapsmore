@@ -74,23 +74,31 @@ class CornerRect{
 	 * Size setters
 	 */
 	function set_topLeft( v : Float ) : Float{
-		topLeft = v;
-		changed();
+		if (topLeft != v){
+			topLeft = v;
+			changed();
+		}
 		return v;
 	}
 	function set_topRight( v : Float ) : Float{
-		topRight = v;
-		changed();
+		if (topRight != v){
+			topRight = v;
+			changed();
+		}
 		return v;
 	}
 	function set_bottomLeft( v : Float ) : Float{
-		bottomLeft = v;
-		changed();
+		if (bottomLeft != v){
+			bottomLeft = v;
+			changed();
+		}
 		return v;
 	}
 	function set_bottomRight( v : Float ) : Float{
-		bottomRight = v;
-		changed();
+		if (bottomRight != v){
+			bottomRight = v;
+			changed();
+		}
 		return v;
 	}
 	inline function changed(){

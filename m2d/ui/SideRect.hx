@@ -74,23 +74,31 @@ class SideRect{
 	 * Size setters
 	 */
 	function set_top( v : Float ) : Float{
-		top = v;
-		changed();
+		if (top != v){
+			top = v;
+			changed();
+		}
 		return v;
 	}
 	function set_right( v : Float ) : Float{
-		right = v;
-		changed();
+		if (right != v){
+			right = v;
+			changed();
+		}
 		return v;
 	}
 	function set_bottom( v : Float ) : Float{
-		bottom = v;
-		changed();
+		if (bottom != v){
+			bottom = v;
+			changed();
+		}
 		return v;
 	}
 	function set_left( v : Float ) : Float{
-		left = v;
-		changed();
+		if (left != v){
+			left = v;
+			changed();
+		}
 		return v;
 	}
 	inline function changed(){

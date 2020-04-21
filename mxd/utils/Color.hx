@@ -1,7 +1,5 @@
 package mxd.utils;
 
-
-
 /**
  * Various color helpers
  */
@@ -160,7 +158,7 @@ class Color{
 	 * @param a 		The alpha 0.0 <= a <= 1.0
 	 */
 	public static function applyAlpha( color : Int, a : Float ){
-		var av : Int = Math.round( ((a<0)?a:(a>1)?1:a) * 255 );
+		var av : Int = Math.round( hxd.Math.clamp(a) * 255 );
 		return (color & 0xffffff) | (av<<24);
 	}
 
@@ -183,9 +181,9 @@ class Color{
 	 * @return Int	The color
 	 */
 	public static function colorFromRGB( R : Int, G : Int, B : Int ) : Int{
-		R = ((R<0)?0:(R>255)?255:R);
-		G = ((G<0)?0:(G>255)?255:G);
-		B = ((B<0)?0:(B>255)?255:B);
+		R = hxd.Math.iclamp( R, 0, 255 );
+		G = hxd.Math.iclamp( R, 0, 255 );
+		B = hxd.Math.iclamp( R, 0, 255 );
 		return fastColorFromRGB( R, G, B );
 	}
 
@@ -210,10 +208,10 @@ class Color{
 	 * @return Int	The color
 	 */
 	public static function colorFromRGBA( R : Int, G : Int, B : Int, A : Int ) : Int{
-		R = ((R<0)?0:(R>255)?255:R);
-		G = ((G<0)?0:(G>255)?255:G);
-		B = ((B<0)?0:(B>255)?255:B);
-		A = ((A<0)?0:(A>255)?255:A);
+		R = hxd.Math.iclamp( R, 0, 255 );
+		G = hxd.Math.iclamp( R, 0, 255 );
+		B = hxd.Math.iclamp( R, 0, 255 );
+		A = hxd.Math.iclamp( A, 0, 255 );
 		return fastColorFromRGBA( R, G, B, A );
 	}
 
@@ -227,10 +225,10 @@ class Color{
 	 * @return Int	The color
 	 */
 	public static function colorFromRGBa( R : Int, G : Int, B : Int, a : Float ) : Int{
-		var A : Int = Math.round(((a<0)?0:(a>1)?1:a)*255);
-		R = ((R<0)?0:(R>255)?255:R);
-		G = ((G<0)?0:(G>255)?255:G);
-		B = ((B<0)?0:(B>255)?255:B);
+		var A : Int = Math.round(hxd.Math.clamp(a)*255);
+		R = hxd.Math.iclamp( R, 0, 255 );
+		G = hxd.Math.iclamp( R, 0, 255 );
+		B = hxd.Math.iclamp( R, 0, 255 );
 		return fastColorFromRGBA( R, G, B, A );
 	}
 

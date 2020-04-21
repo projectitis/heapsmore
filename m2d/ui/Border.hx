@@ -39,8 +39,9 @@ class Border{
 	 * Size
 	 */
 	 function set_size( v : Float ) : Float{
-		if (this.size != v){
-			this.size = (v<0)?0:v;
+		var n = hxd.Math.imax(0,v);
+		if (this.size != n){
+			this.size = n;
 			if (onChangeSize!=null){
 				var callback : Void -> Void = onChangeSize;
 				onChangeSize = null;

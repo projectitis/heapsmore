@@ -157,69 +157,95 @@ class Background{
 	 * Setters
 	 */
 	function set_color( v : Null<Int> ) : Null<Int>{
-		if (v==null) color =  null;
-		else color = v;
-		changed();
+		if (color != v){
+			color = v;
+			changed();
+		}
 		return v;
 	}
 	function set_alpha( v : Float ) : Float{
-		alpha = (v<0)?0:(v>1)?1:v;
-		changed();
+		var n = hxd.Math.clamp(v);
+		if (alpha != n){
+			alpha = n;
+			changed();
+		}
 		return v;
 	}
 	function set_visible( v : Bool ) : Bool{
-		visible = v;
-		changed();
+		if (visible != v){
+			visible = v;
+			changed();
+		}
 		return v;
 	}
 	function set_image( v : Tile ) : Tile{
-		image = v;
-		changed();
+		if (image != v){
+			image = v;
+			changed();
+		}
 		return v;
 	}
 	function set_imageAlpha( v : Float ) : Float{
-		imageAlpha = (v<0)?0:(v>1)?1:v;
-		changed();
+		if (imageAlpha != v){
+			imageAlpha = hxd.Math.clamp(v);
+			changed();
+		}
 		return v;
 	}
 	function set_imageSize( v : BackgroundSize ) : BackgroundSize{
-		imageSize = v;
-		changed();
+		if (imageSize != v){
+			imageSize = v;
+			changed();
+		}
 		return v;
 	}
 	function set_imageWidth( v : Float ) : Float{
-		imageWidth = v;
-		changed();
+		if (imageWidth != v){
+			imageWidth = v;
+			changed();
+		}
 		return v;
 	}
 	function set_imageHeight( v : Float ) : Float{
-		imageHeight = v;
-		changed();
+		if (imageHeight != v){
+			imageHeight = v;
+			changed();
+		}
 		return v;
 	}
 	function set_imagePositionH( v : BackgroundPosition ) : BackgroundPosition{
-		imagePositionH = v;
-		changed();
+		if (imagePositionH != v){
+			imagePositionH = v;
+			changed();
+		}
 		return v;
 	}
 	function set_imagePositionV( v : BackgroundPosition ) : BackgroundPosition{
-		imagePositionV = v;
-		changed();
+		if (imagePositionV!=v){
+			imagePositionV = v;
+			changed();
+		}
 		return v;
 	}
 	function set_imageX( v : Float ) : Float{
-		imageX = v;
-		changed();
+		if (imageX != v){
+			imageX = v;
+			changed();
+		}
 		return v;
 	}
 	function set_imageY( v : Float ) : Float{
-		imageY = v;
-		changed();
+		if (imageY != v){
+			imageY = v;
+			changed();
+		}
 		return v;
 	}
 	function set_imageRepeat( v : Bool ) : Bool{
-		imageRepeat = v;
-		changed();
+		if (imageRepeat != v){
+			imageRepeat = v;
+			changed();
+		}
 		return v;
 	}
 	inline function changed(){

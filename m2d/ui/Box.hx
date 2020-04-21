@@ -26,7 +26,27 @@ class Box extends Object{
 	/**
 	 * User height
 	 */
-	 var h : Float = 0;
+	var h : Float = 0;
+
+	/**
+	 * Top anchor for positioning
+	 */
+	var top(default,set) : Null<Float> = null;
+
+	/**
+	 * Right anchor for positioning
+	 */
+	var right(default,set) : Null<Float> = null;
+
+	/**
+	 * Bottom anchor for positioning
+	 */
+	var bottom(default,set) : Null<Float> = null;
+
+	 /**
+	  * Left anchor for positioning
+	  */
+	var left(default,set) : Null<Float> = null;
 
 	/**
 	 * The margins of the box.
@@ -129,7 +149,7 @@ class Box extends Object{
 
 	function set_cornerRadius( v : Float ) : Float{
 		if (cornerRadius!=v){
-			cornerRadius = (v<0)?0:v;
+			cornerRadius = hxd.Math.max(0,v);
 			boxNeedsRedraw = true;
 		}
 		return v;
@@ -140,29 +160,61 @@ class Box extends Object{
 	 */
 	function set_maxWidth( v : Float ) : Float{
 		if (maxWidth!=v){
-			maxWidth = (v<0)?0:v;
+			maxWidth = hxd.Math.max(0,v);
 			contentChange(); // Force resize to apply new limit
 		}
 		return v;
 	}
 	function set_minWidth( v : Float ) : Float{
 		if (minWidth!=v){
-			minWidth = (v<0)?0:v;
+			minWidth = hxd.Math.max(0,v);
 			contentChange(); // Force resize to apply new limit
 		}
 		return v;
 	}
 	function set_maxHeight( v : Float ) : Float{
 		if (maxHeight!=v){
-			maxHeight = (v<0)?0:v;
+			maxHeight = hxd.Math.max(0,v);
 			contentChange(); // Force resize to apply new limit
 		}
 		return v;
 	}
 	function set_minHeight( v : Float ) : Float{
 		if (minHeight!=v){
-			minHeight = (v<0)?0:v;
+			minHeight = hxd.Math.max(0,v);
 			contentChange(); // Force resize to apply new limit
+		}
+		return v;
+	}
+
+	/**
+	 * Positioning
+	 */
+	function set_top( v : Null<Float> ) : Null<Float>{
+		if (this.top != v){
+			this.top = v;
+			positionChange();
+		}
+		return v;
+	}
+	function set_right( v : Null<Float> ) : Null<Float>{
+		if (this.right != v){
+			this.right = v;
+			positionChange();
+		}
+		return v;
+	}
+	function set_bottom( v : Null<Float> ) : Null<Float>{
+		if (this.bottom != v){
+			this.bottom = v;
+			positionChange();
+		}
+		return v;
+	}
+	function set_left( v : Null<Float> ) : Null<Float>{
+		if (this.left != v){
+			this.left = v;
+			positionChange();
 		}
 		return v;
 	}
@@ -254,7 +306,6 @@ class Box extends Object{
 
 		boxNeedsRedraw = false;
 	}
-
 	override function draw(ctx:RenderContext) {
 		super.draw(ctx);
 		if (boxNeedsRedraw) boxRedraw();
