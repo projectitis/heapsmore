@@ -15,6 +15,11 @@ The package structure is similar to Heaps:
 
 ## Changes
 
+__2020-04-28__
+* UI: Created Param for relative sizes (supports px, %, pw, ph, vw,vh)
+* UI: Started UIApp (extends hxd.App) specifically for an m2d.ui based app
+* UI: Working on creating UI DOM from JSON file (supports font loading and stylesheets). WIP
+
 __2020-04-21__
 
 * Color: Added 140 predefined colors (the css3 colors). Added color helpers
