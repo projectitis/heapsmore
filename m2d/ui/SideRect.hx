@@ -1,29 +1,42 @@
 package m2d.ui;
 
+import h2d.Object;
+import mxd.Param;
+
 /**
  * Rect for UI elements that describes 4 sides. Used internally by UI elements
  */
 class SideRect{
 
-	/**
-	 * Size of top
-	 */
-	public var top(default,set) : Float = 0;
+	 var t : Param = new Param();
+	 var b : Param = new Param();
+	 var l : Param = new Param();
+	 var r : Param = new Param();
 
 	/**
-	 * Size of bottom
+	 * Top anchor for positioning
 	 */
-	public var bottom(default,set) : Float = 0;
-
+	public var parent(default,set) : Object = null;
+ 
 	/**
-	 * Size of left
+	 * Top anchor for positioning
 	 */
-	public var left(default,set) : Float = 0;
-
+	public var top(get,set) : Float;
+ 
 	/**
-	 * Size of right
+	 * Right anchor for positioning
 	 */
-	public var right(default,set) : Float = 0;
+	public var right(get,set) : Float;
+ 
+	/**
+	 * Bottom anchor for positioning
+	 */
+	public var bottom(get,set) : Float;
+ 
+	/**
+	 * Left anchor for positioning
+	 */
+	public var left(get,set) : Float;
 
 	/**
 	 * Callback when size changes
@@ -73,32 +86,44 @@ class SideRect{
 	/**
 	 * Size setters
 	 */
-	function set_top( v : Float ) : Float{
-		if (top != v){
-			top = v;
-			changed();
-		}
+	function get_top() : Null<Float>{
+		return this.t.value;
+	}
+	function set_top( v : Null<Float> ) : Null<Float>{
+		this.t.setValue(v);
+		changed();
 		return v;
 	}
-	function set_right( v : Float ) : Float{
-		if (right != v){
-			right = v;
-			changed();
-		}
+	function get_right() : Null<Float>{
+		return this.r.value;
+	}
+	function set_right( v : Null<Float> ) : Null<Float>{
+		this.r.setValue(v);
+		changed();
 		return v;
 	}
-	function set_bottom( v : Float ) : Float{
-		if (bottom != v){
-			bottom = v;
-			changed();
-		}
+	function get_bottom() : Null<Float>{
+		return this.b.value;
+	}
+	function set_bottom( v : Null<Float> ) : Null<Float>{
+		this.b.setValue(v);
+		changed();
 		return v;
 	}
-	function set_left( v : Float ) : Float{
-		if (left != v){
-			left = v;
-			changed();
-		}
+	function get_left() : Null<Float>{
+		return this.l.value;
+	}
+	function set_left( v : Null<Float> ) : Null<Float>{
+		this.l.setValue(v);
+		changed();
+		return v;
+	}
+	function set_parent( v : Object ) : Object{
+		this.parent = v;
+		this.t.parent = v;
+		this.r.parent = v;
+		this.b.parent = v;
+		this.l.parent = v;
 		return v;
 	}
 	inline function changed(){
@@ -109,5 +134,41 @@ class SideRect{
 			onChange = callback;
 		}
 	}
+
+	/**
+	 * Populate from external data
+	 * @param data 	The data
+	 */
+	public function fromData( data : haxe.DynamicAccess<Dynamic> ){
+		var callback : Void -> Void = onChange; onChange = null; // Ensure we don't recurse
+
+		applyStyle( data );
+
+		if (callback != null) callback();
+		onChange = callback;
+	}
+
+	/**
+	 * This method does the actual work of applying the style data to this object. Subclasses should
+	 * override this (but call super.applyStyle first).
+	 * @param data 		The data
+	 */
+	function applyStyle( data : haxe.DynamicAccess<Dynamic> ){
+		if (data == null) return;
+
+		if (Std.is(data,Int) || Std.is(data,Float)){
+			var f : Float = cast(data,Float);
+			this.t.setValue( f );
+			this.r.setValue( f );
+			this.b.setValue( f );
+			this.l.setValue( f );
+		}
+		else{
+			if (data.exists('top')) this.t.setValue( cast(data.get('top'),String) );
+			if (data.exists('right')) this.r.setValue( cast(data.get('right'),String) );
+			if (data.exists('bottom')) this.b.setValue( cast(data.get('bottom'),String) );
+			if (data.exists('left')) this.l.setValue( cast(data.get('left'),String) );
+		}
+	 }
 
 }

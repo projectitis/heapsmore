@@ -258,6 +258,21 @@ class Background{
 	}
 
 	/**
+	 * Populate background from external data
+	 * @param data 	The data
+	 */
+	public function fromData( data : haxe.DynamicAccess<Dynamic> ){
+		var callback : Void -> Void = onChange; onChange = null; // Ensure we don't recurse
+
+		if (data.exists('color')) this.color = Std.parseInt(data.get('color'));
+		if (data.exists('alpha')) this.alpha = Std.parseFloat(data.get('alpha'));
+		if (data.exists('visible')) this.visible = cast(data.get('visible'),String).toLowerCase()=='true';
+
+		if (callback != null) callback();
+		onChange = callback;
+	}
+
+	/**
 	 * Draw the background onto the canvas at the specified width and height 
 	 * @param canvas 	The Graphics object to draw to
 	 * @param width 	The width of the background

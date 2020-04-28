@@ -1,8 +1,12 @@
 package m2d.ui;
 
+import haxe.DynamicAccess;
 import h2d.Graphics;
 import h2d.Object;
 import h2d.RenderContext;
+import hxd.Math;
+import mxd.Param;
+import mxd.UIApp;
 
 /**
  * css-style box model. Box is very similar to an HTML 'div'.
@@ -19,34 +23,38 @@ import h2d.RenderContext;
 class Box extends Object{
 
 	/**
-	 * User width
+	 * Width, height
 	 */
-	var w : Float = 0;
+	var w : Param;
+	var h : Param;
 
 	/**
-	 * User height
+	 * Positioning
 	 */
-	var h : Float = 0;
+	var t : Param;
+	var b : Param;
+	var l : Param;
+	var r : Param;
 
 	/**
 	 * Top anchor for positioning
 	 */
-	var top(default,set) : Null<Float> = null;
+	var top(get,set) : Float;
 
 	/**
 	 * Right anchor for positioning
 	 */
-	var right(default,set) : Null<Float> = null;
+	var right(get,set) : Float;
 
 	/**
 	 * Bottom anchor for positioning
 	 */
-	var bottom(default,set) : Null<Float> = null;
+	var bottom(get,set) : Float;
 
 	 /**
 	  * Left anchor for positioning
 	  */
-	var left(default,set) : Null<Float> = null;
+	var left(get,set) : Float;
 
 	/**
 	 * The margins of the box.
@@ -98,22 +106,22 @@ class Box extends Object{
 	/**
 	 * Set a maximum width limit (includes content+padding+border)
 	 **/
-	public var maxWidth(default,set) : Null<Float> = null;
+	public var maxWidth(get,set) : Null<Float>;
 
 	 /**
 	 * Set a minimum width limit (includes content+padding+border)
 	 **/
-	public var minWidth(default,set) : Null<Float> = null;
+	public var minWidth(get,set) : Null<Float>;
 
 	/**
 	 * Set a maximum height limit (includes content+padding+border)
 	 **/
-	public var maxHeight(default,set) : Null<Float> = null;
+	public var maxHeight(get,set) : Null<Float>;
 
 	/**
 	 * Set a minimum height limit (includes content+padding+border)
 	 **/
-	public var minHeight(default,set) : Null<Float> = null;
+	public var minHeight(get,set) : Null<Float>;
 
 	/**
 	 * The graphics object to draw the background to
@@ -137,19 +145,47 @@ class Box extends Object{
 	 **/
 	public function new( ?width : Float, ?height : Float, ?parent : Object ){
 		super(parent);
+		w = new Param(parent);
+		h = new Param(parent);
+		t = new Param(parent);
+		b = new Param(parent);
+		l = new Param(parent);
+		r = new Param(parent);
 		backgroundCanvas = new Graphics( this );
 		borderCanvas = new Graphics( this );
-		content.onChange = contentChange;
-		padding.onChange = boxChange;
-		border.onChangeSize = boxChange;
-		background.onChange = bgChange;
+		content.onChange = sizeChanged;
+		padding.parent = this;
+		padding.onChange = sizeChanged;
+		border.parent = this;
+		border.onChangeSize = sizeChanged;
+		margin.parent = this;
+		background.onChange = bgChanged;
 		content.setSize( width, height );
-
 	}
 
+	/**
+	 * Hook function to get new parent
+	 */
+	override function onAdd() {
+		super.onAdd();
+		w.parent = parent;
+		h.parent = parent;
+		t.parent = parent;
+		r.parent = parent;
+		b.parent = parent;
+		l.parent = parent;
+		padding.parent = parent;
+		margin.parent = parent;
+		border.parent = parent;
+		sizeChanged();
+	}
+
+	/**
+	 * Corner radius
+	 */
 	function set_cornerRadius( v : Float ) : Float{
 		if (cornerRadius!=v){
-			cornerRadius = hxd.Math.max(0,v);
+			cornerRadius = Math.max(0,v);
 			boxNeedsRedraw = true;
 		}
 		return v;
@@ -158,109 +194,84 @@ class Box extends Object{
 	/**
 	 * MIN and MAX
 	 */
-	function set_maxWidth( v : Float ) : Float{
-		if (maxWidth!=v){
-			maxWidth = hxd.Math.max(0,v);
-			contentChange(); // Force resize to apply new limit
-		}
+	function get_maxWidth() : Null<Float>{
+		return this.w.maxValue;
+	}
+	function set_maxWidth( v : Null<Float> ) : Null<Float>{
+		this.w.setMaxValue( v );
+		sizeChanged();
 		return v;
 	}
-	function set_minWidth( v : Float ) : Float{
-		if (minWidth!=v){
-			minWidth = hxd.Math.max(0,v);
-			contentChange(); // Force resize to apply new limit
-		}
+	function get_minWidth() : Null<Float>{
+		return this.w.minValue;
+	}
+	function set_minWidth( v : Null<Float> ) : Null<Float>{
+		this.w.setMinValue( v );
+		sizeChanged();
 		return v;
 	}
-	function set_maxHeight( v : Float ) : Float{
-		if (maxHeight!=v){
-			maxHeight = hxd.Math.max(0,v);
-			contentChange(); // Force resize to apply new limit
-		}
+	function get_maxHeight() : Null<Float>{
+		return this.h.maxValue;
+	}
+	function set_maxHeight( v : Null<Float> ) : Null<Float>{
+		this.h.setMaxValue( v );
+		sizeChanged();
 		return v;
 	}
-	function set_minHeight( v : Float ) : Float{
-		if (minHeight!=v){
-			minHeight = hxd.Math.max(0,v);
-			contentChange(); // Force resize to apply new limit
-		}
+	function get_minHeight() : Null<Float>{
+		return this.h.minValue;
+	}
+	function set_minHeight( v : Null<Float> ) : Null<Float>{
+		this.h.setMinValue( v );
+		sizeChanged();
 		return v;
 	}
 
 	/**
 	 * Positioning
 	 */
+	function get_top() : Null<Float>{
+		return this.t.value;
+	}
 	function set_top( v : Null<Float> ) : Null<Float>{
-		if (this.top != v){
-			this.top = v;
-			positionChange();
-		}
+		this.t.setValue(v);
+		positionChanged();
 		return v;
+	}
+	function get_right() : Null<Float>{
+		return this.r.value;
 	}
 	function set_right( v : Null<Float> ) : Null<Float>{
-		if (this.right != v){
-			this.right = v;
-			positionChange();
-		}
+		this.r.setValue(v);
+		positionChanged();
 		return v;
+	}
+	function get_bottom() : Null<Float>{
+		return this.b.value;
 	}
 	function set_bottom( v : Null<Float> ) : Null<Float>{
-		if (this.bottom != v){
-			this.bottom = v;
-			positionChange();
-		}
+		this.b.setValue(v);
+		positionChanged();
 		return v;
+	}
+	function get_left() : Null<Float>{
+		return this.l.value;
 	}
 	function set_left( v : Null<Float> ) : Null<Float>{
-		if (this.left != v){
-			this.left = v;
-			positionChange();
-		}
+		this.l.setValue(v);
+		positionChanged();
 		return v;
 	}
 
-	/**
-	 * The size of the content has changed directly
-	 **/
-	function contentChange(){
-		var callback : Void -> Void = content.onChange; content.onChange = null; // Ensure we don't recurse
-
-		// Content size has been changed. Ensure size ok
-		var ex : Float = padding.left + padding.right + border.left.size + border.right.size;
-		var v : Float = content.width;
-		if ((minWidth!=null) && ((v+ex) < minWidth)) v = minWidth-ex;
-		if ((maxWidth!=null) && ((v+ex) > maxWidth)) v = Math.max(0,maxWidth-ex);
-		content.width = v;
-		w = v + ex;
-
-		ex = padding.top + padding.bottom + border.top.size + border.bottom.size;
-		v = content.height;
-		if ((minHeight!=null) && ((v+ex) < minHeight)) v = minHeight-ex;
-		if ((maxHeight!=null) && ((v+ex) > maxHeight)) v = Math.max(0,maxHeight-ex);
-		content.height = v;
-		h = v + ex;
-
-		content.onChange = callback;
-		boxNeedsRedraw = true;
-	}
 	/**
 	 * The size of the box (padding, border) has changed, so adjust content according to w,h
 	 */
-	function boxChange(){
+	function sizeChanged(){
 		var callback : Void -> Void = content.onChange; content.onChange = null; // Ensure we don't recurse
 
 		// Content size has been changed. Ensure size ok
-		var ex : Float = padding.left + padding.right + border.left.size + border.right.size;
-		var v : Float = w - ex;
-		if ((minWidth!=null) && ((v+ex) < minWidth)) v = minWidth-ex;
-		if ((maxWidth!=null) && ((v+ex) > maxWidth)) v = Math.max(0,maxWidth-ex);
-		content.width = v;
-
-		ex = padding.top + padding.bottom + border.top.size + border.bottom.size;
-		v = h - ex;
-		if ((minHeight!=null) && ((v+ex) < minHeight)) v = minHeight-ex;
-		if ((maxHeight!=null) && ((v+ex) > maxHeight)) v = Math.max(0,maxHeight-ex);
-		content.height = v;
+		content.width = Math.max( 0, this.w.value-(padding.left + padding.right + border.left.size + border.right.size) );
+		content.height = Math.max( 0, this.h.value-(padding.top + padding.bottom + border.top.size + border.bottom.size) );
 
 		content.onChange = callback;
 		boxNeedsRedraw = true;
@@ -269,35 +280,142 @@ class Box extends Object{
 	/**
 	 * Called when the background is changed
 	 */
-	function bgChange(){
+	function bgChanged(){
 		boxNeedsRedraw = true;
 	}
 
 	/**
 	 * Called when the position is updated
 	 */
-	function positionChange(){
+	function positionChanged(){
 
 	}
 
 	/**
-	 * BORDER methods
+	 * WIDTH and HEIGHT
 	 **/
 	function get_width() : Float{
 		return content.width + padding.left + padding.right + border.left.size + border.right.size;
 	}
 	function set_width( v : Float ) : Float{
-		content.width = v - (padding.left + padding.right + border.left.size + border.right.size);
-		w = content.width;
+		this.w.setValue(v);
+		sizeChanged();
 		return v;
 	}
 	function get_height() : Float{
 		return content.height + padding.top + padding.bottom + border.top.size + border.bottom.size;
 	}
 	function set_height( v : Float ) : Float{
-		content.height = v - (padding.top + padding.bottom + border.top.size + border.bottom.size);
-		h = content.height;
+		this.h.setValue(v);
+		sizeChanged();
 		return v;
+	}
+	/**
+	 * Set the width. Alternative to setting width directly, but supports widths with units
+	 * @param v 	If supplied, the width in pixels
+	 * @param s 	If supplied, the width in any supported unit. See mxd.Param for supported units.
+	 */
+	public function setWidth( ?v : Float, ?s : String ){
+		this.w.setValue(v,s);
+		sizeChanged();
+	}
+	public function setHeight( ?v : Float, ?s : String ){
+		this.h.setValue(v,s);
+		sizeChanged();
+	}
+
+
+	/**
+	 * Set the properties of theis UI object from data (usually JSON). Normal usage is something like:
+	 * `var data : haxe.DynamicAccess<Dynamic> = haxe.Json.parse( jsonText );`
+	 * `myBox.fromData( data );`
+	 * This UI object supports the following properties:
+	 * 		width, height				250, "50%"
+	 * 		x, y						250, "50%"
+	 * 		top, left, right, bottom	250, "50%"
+	 * 		maxWidth, maxHeight			250, "50%"
+	 * 		minWidth, minHeight			250, "50%"
+	 * 		alpha						0.0 - 1.0
+	 * 		background (see m2d.ui.Background)
+	 * 		padding (see m2d.SideRect)
+	 * 		border (see m2d.Borders)
+	 * 		margin (see m2d.SideRect)
+	 * @param data 		The data
+	 */
+	public function fromData( data : haxe.DynamicAccess<Dynamic> ){
+		var callback : Void -> Void = content.onChange; content.onChange = null; // Ensure we don't recurse
+
+		// Apply style data to this object
+		this.applyStyle( data );
+
+		// Create children
+		if (data.exists('children')){
+			var children : Array<DynamicAccess<Dynamic>> = data.get('children');
+			for (child in children){
+				if (!child.exists('type')) throw('Property \'type\' not found');
+				switch (cast(child.get('type'),String)){
+					case 'Box':
+						var b : Box = new Box( this );
+						b.fromData( child );
+					case 'TextArea':
+						var t : TextArea = new TextArea( this );
+						t.fromData( child );
+						trace('width: ${t.width}, height: ${t.height}');
+				}
+			}
+		}
+
+		content.onChange = callback;
+		sizeChanged();
+	}
+
+	/**
+	 * This method does the actual work of applying the style data to this object. Subclasses should
+	 * override this (but call super.applyStyle first).
+	 * @param data 		The data
+	 */
+	function applyStyle( data : haxe.DynamicAccess<Dynamic> ){
+		if (data == null) return;
+
+		var t : Dynamic;
+		var s : String;
+		var f : Float;
+
+		if (data.exists('style')){
+			var styles : Array<String> = cast(data.get('style'),String).split(',');
+			for (name in styles){
+				this.applyStyle(UIApp.getStyle( StringTools.trim(name) ));
+			}
+		}
+		if (data.exists('alpha')) this.alpha = Std.parseFloat(cast(data.get('alpha'),String));
+		if (data.exists('visible')) this.visible = cast(data.get('visible'),String).toLowerCase()=='true';
+		if (data.exists('rotation')){
+			t = data.get('rotation');
+			if (Std.is(t,Int) || Std.is(t,Float)) this.rotation = cast(t,Float);
+			else{
+				s = cast(t,String);
+				if (s.substr(-3)=='deg') this.rotation = Math.degToRad( Std.parseFloat(s.substr(0,s.length-3)) );
+				else if (s.substr(-3)=='rad') this.rotation = Std.parseFloat(s.substr(0,s.length-3));
+				else this.rotation = Std.parseFloat(s);
+			}
+		}
+		if (data.exists('scale')) this.scale( Std.parseFloat(cast(data.get('scale'),String)) );
+		if (data.exists('scale-x')) this.scaleX = Std.parseFloat(cast(data.get('scale-x'),String));
+		if (data.exists('scale-y')) this.scaleY = Std.parseFloat(cast(data.get('scale-y'),String));
+		if (data.exists('x')) this.l.setValue( cast(data.get('x'),String) );
+		if (data.exists('y')) this.t.setValue( cast(data.get('y'),String) );
+		if (data.exists('top')) this.t.setValue( cast(data.get('top'),String) );
+		if (data.exists('right')) this.r.setValue( cast(data.get('right'),String) );
+		if (data.exists('bottom')) this.b.setValue( cast(data.get('bottom'),String) );
+		if (data.exists('left')) this.l.setValue( cast(data.get('left'),String) );
+		if (data.exists('width')) this.w.setValue(cast(data.get('width'),String));
+		if (data.exists('max-width')) this.w.setMaxValue(cast(data.get('max-width'),String));
+		if (data.exists('min-width')) this.w.setMinValue(cast(data.get('min-width'),String));
+		if (data.exists('height')) this.h.setValue(cast(data.get('height'),String));
+		if (data.exists('max-height')) this.h.setMaxValue(cast(data.get('max-height'),String));
+		if (data.exists('min-height')) this.h.setMinValue(cast(data.get('min-height'),String));
+		if (data.exists('background')) this.background.fromData( data.get('background') );
+		if (data.exists('padding')) this.padding.fromData( data.get('padding') );
 	}
 
 	/**

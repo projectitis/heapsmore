@@ -1,14 +1,27 @@
 package m2d.ui;
 
+import h2d.Object;
+import mxd.Param;
+
 /**
  * One side of a border
  */
 class Border{
 
 	/**
+	 * Value for border size
+	 */
+	var s : Param = new Param();
+
+	/**
+	 * Top anchor for positioning
+	 */
+	public var parent(get,set) : Object;
+
+	/**
 	 * Size of a BoxColor will never be negative
 	 */
-	public var size(default,set) : Float = 0;
+	public var size(get,set) : Float;
 
 	/**
 	 * Color
@@ -31,39 +44,57 @@ class Border{
 	 * @param height 
 	 */
 	public function new( ?size : Float, ?color : Int ){
-		if (size!=null) this.size = size;
+		s.setMinValue(0);
+		if (size!=null) this.s.setValue( size );
 		if (color!=null) this.color = color;
+	}
+
+	/**
+	 * Parent
+	 */
+	function get_parent() : Object{
+		return s.parent;
+	}
+	function set_parent( v : Object ) : Object{
+		s.parent = v;
+		sizeChanged();
+		return v;
 	}
 
 	/**
 	 * Size
 	 */
-	 function set_size( v : Float ) : Float{
-		var n = hxd.Math.max(0,v);
-		if (this.size != n){
-			this.size = n;
-			if (onChangeSize!=null){
-				var callback : Void -> Void = onChangeSize;
-				onChangeSize = null;
-				callback();
-				onChangeSize = callback;
-			}
-		}
+	function get_size() : Float{
+		return s.value;
+	}
+	function set_size( v : Float ) : Float{
+		this.s.setValue( v );
+		sizeChanged();
 		return v;
+	}
+	public function setSize( ?v : Float, ?s : String ){
+		this.s.setValue( v, s );
+		sizeChanged();
+	}
+	function sizeChanged(){
+		if (onChangeSize!=null){
+			var callback : Void -> Void = onChangeSize;
+			onChangeSize = null;
+			callback();
+			onChangeSize = callback;
+		}
 	}
 
 	/**
 	 * Color
 	 */
 	function set_color( c : Int ) : Int{
-		if (this.color != c){
-			this.color = c;
-			if (onChangeColor!=null){
-				var callback : Void -> Void = onChangeColor;
-				onChangeColor = null;
-				callback();
-				onChangeColor = callback;
-			}
+		this.color = c;
+		if (onChangeColor!=null){
+			var callback : Void -> Void = onChangeColor;
+			onChangeColor = null;
+			callback();
+			onChangeColor = callback;
 		}
 		return c;
 	}

@@ -1,11 +1,17 @@
 package m2d.ui;
 
 import h2d.Graphics;
+import h2d.Object;
 
 /**
  * Describes for borders. used internally by UI elements
  */
 class Borders{
+
+	/**
+	 * Top anchor for positioning
+	 */
+	public var parent(default,set) : Object = null;
 
 	/**
 	 * The top size/color pair
@@ -153,6 +159,18 @@ class Borders{
 			this.visible = v;
 			changeColor();
 		}
+		return v;
+	}
+
+	/**
+	 * Parent
+	 */
+	function set_parent( v : Object ) : Object{
+		this.parent = v;
+		this.top.parent = v;
+		this.right.parent = v;
+		this.bottom.parent = v;
+		this.left.parent = v;
 		return v;
 	}
 

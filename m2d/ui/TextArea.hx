@@ -7,6 +7,7 @@ import h2d.RenderContext;
 import h2d.Tile;
 import h2d.TileGroup;
 import m2d.ui.Box;
+import mxd.UIApp;
 
 /**
  * Text alignment options.
@@ -56,8 +57,11 @@ private class TextLine {
  *		max- and min- width and height (works with auto-width and height)
  * Todo:
  * 		Implement scrollH, scrollY, maxScrollH, maxScrollY (see h2d.Mask)
- * 		Implement border
  * 		Implement border radius
+ * 		Change padding values to Param type (parent is immediate Box?)
+ * 		Change margin values to Param type (parent is immediate Box?)
+ * 		Change border values to Param type (parent is immediate Box?)
+ * 		Change clipping to use mask? Ready for scroll
  */
 class TextArea extends Box{
 
@@ -169,6 +173,10 @@ class TextArea extends Box{
 		lines = null;
 		textAreaNeedsUpdate = true;
 		return v;
+	}
+	function setFontByName( name : String ){
+	trace('setFontByName: '+name);
+		font = UIApp.getFont(name);
 	}
 
 	/**
@@ -412,6 +420,20 @@ class TextArea extends Box{
 	function charInStr( c : Int, s : String ) : Bool{
 		for (i in 0...s.length) if (StringTools.fastCodeAt(s,i)==c) return true;
 		return false;
+	}
+
+	/**
+	 * This method does the actual work of applying the style data to this object. Subclasses should
+	 * override this (but call super.applyStyle first).
+	 * @param data 		The data
+	 */
+	override function applyStyle( data : haxe.DynamicAccess<Dynamic> ){
+		super.applyStyle( data );
+		if (data == null) return;
+
+		if (data.exists('font')) this.setFontByName(cast(data.get('font'),String));
+		if (data.exists('color')) this.color = Std.parseInt(cast(data.get('color'),String));
+		if (data.exists('text')) this.text = cast(data.get('text'),String);
 	}
 
 	/**
