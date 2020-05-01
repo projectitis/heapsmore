@@ -5,7 +5,7 @@ import h2d.Graphics;
 import h2d.Object;
 import h2d.RenderContext;
 import hxd.Math;
-import mxd.Param;
+import m2d.ui.Param;
 import mxd.UIApp;
 
 /**
@@ -145,20 +145,21 @@ class Box extends Object{
 	 **/
 	public function new( ?width : Float, ?height : Float, ?parent : Object ){
 		super(parent);
-		w = new Param(parent);
-		h = new Param(parent);
-		t = new Param(parent);
-		b = new Param(parent);
-		l = new Param(parent);
-		r = new Param(parent);
+		var p : Box = Std.is(parent,Box)?cast(parent,Box):null;
+		w = new Param(p);
+		h = new Param(p);
+		t = new Param(p);
+		b = new Param(p);
+		l = new Param(p);
+		r = new Param(p);
 		backgroundCanvas = new Graphics( this );
 		borderCanvas = new Graphics( this );
 		content.onChange = sizeChanged;
-		padding.parent = this;
+		padding.parent = p;
 		padding.onChange = sizeChanged;
-		border.parent = this;
+		border.parent = p;
 		border.onChangeSize = sizeChanged;
-		margin.parent = this;
+		margin.parent = p;
 		background.onChange = bgChanged;
 		content.setSize( width, height );
 	}
@@ -168,15 +169,16 @@ class Box extends Object{
 	 */
 	override function onAdd() {
 		super.onAdd();
-		w.parent = parent;
-		h.parent = parent;
-		t.parent = parent;
-		r.parent = parent;
-		b.parent = parent;
-		l.parent = parent;
-		padding.parent = parent;
-		margin.parent = parent;
-		border.parent = parent;
+		var p : Box = Std.is(parent,Box)?cast(parent,Box):null;
+		w.parent = p;
+		h.parent = p;
+		t.parent = p;
+		r.parent = p;
+		b.parent = p;
+		l.parent = p;
+		padding.parent = p;
+		margin.parent = p;
+		border.parent = p;
 		sizeChanged();
 	}
 
@@ -360,7 +362,6 @@ class Box extends Object{
 					case 'TextArea':
 						var t : TextArea = new TextArea( this );
 						t.fromData( child );
-						trace('width: ${t.width}, height: ${t.height}');
 				}
 			}
 		}
@@ -419,12 +420,42 @@ class Box extends Object{
 	}
 
 	/**
+	 * Reposition and resize based on parent
+	 */
+	function reposition(){
+		var pw : Float = 0;
+		var ph : Float = 0;
+		var px : Float = 0;
+		var py : Float = 0;
+		if (Std.is(parent,Box)){
+			var p : Box = cast(parent,Box);
+			pw = p.content.width;
+			ph = p.content.height;
+			px = p.border.left.size + p.padding.left;
+			py = p.border.top.size + p.padding.top;
+		}
+		else{
+			pw = UIApp.viewport.width;
+			ph = UIApp.viewport.height;
+		}
+		this.x = px + this.left;
+		this.y = py + this.top;
+		this.width = this.w.value;
+		this.height = this.h.value;
+	}
+
+	/**
 	 * Draw the border and background
 	 * XXX: Border
 	 */
 	function boxRedraw(){
+		// Position self based on parent
+		reposition();
+
+		// Draw border
 		border.drawTo( borderCanvas, width, height, cornerRadius );
 
+		// Draw background
 		backgroundCanvas.x = border.left.size;
 		backgroundCanvas.y = border.top.size;
 		background.drawTo( backgroundCanvas, content.width+padding.left+padding.right, content.height+padding.top+padding.bottom, cornerRadius );

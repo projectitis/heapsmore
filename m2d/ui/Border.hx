@@ -1,7 +1,8 @@
 package m2d.ui;
 
 import h2d.Object;
-import mxd.Param;
+import m2d.ui.Box;
+import m2d.ui.Param;
 
 /**
  * One side of a border
@@ -16,7 +17,7 @@ class Border{
 	/**
 	 * Top anchor for positioning
 	 */
-	public var parent(get,set) : Object;
+	public var parent(get,set) : Box;
 
 	/**
 	 * Size of a BoxColor will never be negative
@@ -52,10 +53,10 @@ class Border{
 	/**
 	 * Parent
 	 */
-	function get_parent() : Object{
+	function get_parent() : Box{
 		return s.parent;
 	}
-	function set_parent( v : Object ) : Object{
+	function set_parent( v : Box ) : Box{
 		s.parent = v;
 		sizeChanged();
 		return v;

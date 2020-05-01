@@ -9,9 +9,9 @@ import h2d.Object;
 class Borders{
 
 	/**
-	 * Top anchor for positioning
+	 * Parent ui object
 	 */
-	public var parent(default,set) : Object = null;
+	public var parent(default,set) : Box = null;
 
 	/**
 	 * The top size/color pair
@@ -165,12 +165,19 @@ class Borders{
 	/**
 	 * Parent
 	 */
-	function set_parent( v : Object ) : Object{
+	function set_parent( v : Box ) : Box{
+		var callback : Void -> Void = onChangeSize; onChangeSize = null;
+
 		this.parent = v;
 		this.top.parent = v;
 		this.right.parent = v;
 		this.bottom.parent = v;
 		this.left.parent = v;
+
+		if (callback != null){
+			callback();
+			onChangeSize = callback;
+		}
 		return v;
 	}
 

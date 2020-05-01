@@ -13,6 +13,11 @@ The package structure is similar to Heaps:
 * __mxd__ - 2D/3D agnostic classes
 * __examples__ - Examples :)
 
+## TODO
+* Update Param to specifically use Box parent
+* Update param to call parent.contentWidth/height
+* Move param to m2d.ui (tied in with ui because of Object and UIApp)
+
 ## Changes
 
 __2020-04-28__

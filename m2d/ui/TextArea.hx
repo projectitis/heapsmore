@@ -116,6 +116,16 @@ class TextArea extends Box{
 	public var characterSpacing(default,set) : Float = 0;
 
 	/**
+	 * The maximum available width
+	 */
+	var availWidth : Float = 0;
+
+	/**
+	 * The maximum available height
+	 */
+	var availHeight : Float = 0;
+
+	/**
 	 * processed text with wrapping
 	 */
 	var lines : Array<TextLine> = null;
@@ -175,7 +185,6 @@ class TextArea extends Box{
 		return v;
 	}
 	function setFontByName( name : String ){
-	trace('setFontByName: '+name);
 		font = UIApp.getFont(name);
 	}
 
@@ -260,6 +269,7 @@ class TextArea extends Box{
 	 * Override width property so that if it is set, the autoWidth feature is disabled. 
 	 */
 	override function set_width( v : Float ) : Float{
+trace('TextArea set width: '+v);
 		autoWidth = false;
 		textAreaNeedsUpdate = true;
 		return super.set_width(v);
@@ -300,7 +310,7 @@ class TextArea extends Box{
 			linesWidth = 0;
 			var mw : Int;						// Max line width
 			if (autoWidth){
-				if (maxWidth!=null) mw = Math.floor(maxWidth - (padding.left + padding.right + border.left.size + border.right.size));
+				if (maxWidth!=null) mw = Math.floor( Math.min(maxWidth - (padding.left + padding.right + border.left.size + border.right.size), availWidth ));
 				else mw = 2147483647;
 			}
 			else{
@@ -396,7 +406,7 @@ class TextArea extends Box{
 			if (autoHeight) content.height = linesHeight;
 		}
 //for (l in lines) trace(l.text+'\t\t'+l.width);
-//trace('Content width: ${Math.ceil(content.width)} Content height:${Math.ceil(content.height)}');
+trace('Content width: $linesWidth Content height:$linesHeight');
 		textAreaNeedsUpdate = false;
 		textAreaNeedsRedraw = true;
 	}
@@ -434,12 +444,20 @@ class TextArea extends Box{
 		if (data.exists('font')) this.setFontByName(cast(data.get('font'),String));
 		if (data.exists('color')) this.color = Std.parseInt(cast(data.get('color'),String));
 		if (data.exists('text')) this.text = cast(data.get('text'),String);
+		if (data.exists('auto-width')) this.autoWidth = cast(data.get('auto-width'),String).toLowerCase()=='true';
+		if (data.exists('auto-height')) this.autoHeight = cast(data.get('auto-height'),String).toLowerCase()=='true';
+		if (data.exists('line-spacing')) this.lineSpacing = Std.parseFloat(cast(data.get('line-spacing'),String));
+
+		textAreaNeedsUpdate = true;
 	}
 
 	/**
 	 * Called to redraw all glyph tiles
 	 */
 	function textAreaRedraw(){
+trace('textAreaRedraw');
+this.w.trace('TextArea.w');
+trace('autoHeight: '+autoHeight);
 		glyphs.clear();
 		glyphs.setDefaultColor( color, 1 );
 		var ls : Float = font.lineHeight*(lineSpacing-1);	// Line spacing
@@ -574,6 +592,33 @@ class TextArea extends Box{
 		var c : Int = 0;
 		for (i in 0...s.length) if (StringTools.fastCodeAt(s,i)==' '.code) c++;
 		return c;
+	}
+
+	/**
+	 * Reposition and resize based on parent
+	 */
+	override function reposition(){
+		var pw : Float = 0;
+		var ph : Float = 0;
+		var px : Float = 0;
+		var py : Float = 0;
+		if (Std.is(parent,Box)){
+			var p : Box = cast(parent,Box);
+			pw = p.content.width;
+			ph = p.content.height;
+			px = p.border.left.size + p.padding.left;
+			py = p.border.top.size + p.padding.top;
+		}
+		else{
+			pw = UIApp.viewport.width;
+			ph = UIApp.viewport.height;
+		}
+		this.x = px + this.left;
+		this.y = py + this.top;
+		this.availWidth = this.w.value;
+		if (!autoWidth) this.width = this.w.value;
+		this.availHeight = this.h.value;
+		if (!autoHeight) this.height = this.h.value;
 	}
 
 	/**

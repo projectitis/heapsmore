@@ -1,7 +1,7 @@
 package m2d.ui;
 
 import h2d.Object;
-import mxd.Param;
+import m2d.ui.Param;
 
 /**
  * Rect for UI elements that describes 4 sides. Used internally by UI elements
@@ -16,7 +16,7 @@ class SideRect{
 	/**
 	 * Top anchor for positioning
 	 */
-	public var parent(default,set) : Object = null;
+	public var parent(default,set) : Box = null;
  
 	/**
 	 * Top anchor for positioning
@@ -118,7 +118,7 @@ class SideRect{
 		changed();
 		return v;
 	}
-	function set_parent( v : Object ) : Object{
+	function set_parent( v : Box ) : Box{
 		this.parent = v;
 		this.t.parent = v;
 		this.r.parent = v;

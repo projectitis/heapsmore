@@ -6,12 +6,12 @@ package m2d.ui;
 class Area{
 
 	/**
-	 * Get or set the width. Actually calls onWidth, which must be handled by the parent.
+	 * Width of area
 	 */
 	public var width(default,set) : Float;
 
 	/**
-	 * Get or set the height. Actually calls onHeight, which must be handled by the parent.
+	 * Height of area
 	 */
 	public var height(default,set) : Float;
  

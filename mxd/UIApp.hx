@@ -41,10 +41,10 @@ class UIApp extends hxd.App{
 	 */
 	public function new(){
 		super();
-		UIApp.viewport = this.s2d;
 	}
 
 	override public function init(){
+		UIApp.viewport = this.s2d;
 		background = new Box( this.s2d );
 	}
 
