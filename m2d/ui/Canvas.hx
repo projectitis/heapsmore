@@ -182,6 +182,7 @@ class Canvas extends Drawable{
 			needRedraw = true;
 
 			sync_pre( ctx );
+
 			sync_sibling( ctx );
 			sync_element( ctx );
 			sync_children( ctx );
@@ -362,10 +363,25 @@ class Canvas extends Drawable{
 	 * @param ctx 	The render context
 	 */
 	override function draw( ctx:RenderContext ) {
+		var nr : Bool = needRedraw; // Incase flags are changed during draw
+		if (needRedraw){
+			needRedraw = false;
+			draw_pre( ctx );
+		}
+
 		super.draw(ctx);
 
-		if (!needRedraw) return;
-		needRedraw = false;
+		if (nr) draw_post( ctx );
 	}
+
+	/**
+	 * Override to perform any initial draw operations
+	 */
+	function draw_pre( ctx:RenderContext ){}
+
+	/**
+	 * Override to perform any final draw operations
+	 */
+	 function draw_post( ctx:RenderContext ){}
 
 }
