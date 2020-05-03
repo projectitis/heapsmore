@@ -1,7 +1,10 @@
 package m2d.ui;
 
+import h2d.RenderContext;
 import h2d.Graphics;
+import h2d.Object;
 import h2d.Tile;
+import m2d.Rect;
 
 /**
  * Background size options
@@ -27,26 +30,21 @@ enum BackgroundPosition {
 /**
  * Background for UI elements. User drawTo to render the background to a Graphics object.
  */
-class Background{
+class Background extends Graphics{
 
 	/**
 	 * The background color as RGB. If an image is set, this is below the image. The color
 	 * can be RGB or ARGB. If there is no A component (or it is 0) the color will be fully
 	 * opaque. To make the color fully transparent, set color to null;
 	 */
-	public var color(default,set) : Null<Int> = null;
+	public var fillColor(default,set) : Null<Int> = null;
 
 	/**
-	 * The background alpha. This applies to the entire background, including the color and
-	 * the image. Note that the color and the image may already have seperate alpha values
+	 * The background opacity. This applies to the entire background, including the fillColor and
+	 * the image. Note that the fillColor and the image may already have seperate alpha values
 	 * as well.
 	 */
-	 public var alpha(default,set) : Float = 1;
- 
-	/**
-	 * Flag to switch background on or off
-	 */
-	public var visible(default,set) : Bool = false;
+	public var opacity(get,set) : Float;
 
 	/**
 	 * Background image. Set to null to display no image
@@ -56,7 +54,7 @@ class Background{
 	/**
 	 * Background image alpha. XXX: Not yet supported
 	 */
-	 public var imageAlpha(default,set) : Float = 1;
+	public var imageAlpha(default,set) : Float = 1;
 
 	/**
 	 * Background image size
@@ -102,15 +100,15 @@ class Background{
 	 */
 	public var imageRepeat(default,set) : Bool = false;
 
-	/**
-	 * Callback when something changes
-	 */
-	public var onChange : Void -> Void = null;
+	var rect : Rect = new Rect(); // Area covered by background
+	var needRedraw : Bool = true; // Redraw flag
 
 	/**
 	 * Constructor stub
 	 */
-	public function new(){}
+	public function new( ?parent : Object ){
+		super( parent );
+	}
 
 	/**
 	 * Shorthand for setting the color and alpha. Note the alpha will also apply to the image (if set).
@@ -118,13 +116,11 @@ class Background{
 	 * @param color 	The color
 	 * @param alpha 	The alpha
 	 */
-	public function setColor( color : Null<Int>, alpha : Null<Float> = null ){
-		var callback : Void -> Void = onChange; onChange = null; // prevent callback until the end
-		if (color != null) this.color = color;
+	public function setFillColor( color : Null<Int>, alpha : Null<Float> = null ){
+		if (color != null) this.fillColor = color;
 		if (alpha != null) this.alpha = alpha;
 		visible = true;
-		onChange = callback;
-		if (onChange != null) onChange();
+		invalidate();
 	}
 
 	/**
@@ -140,7 +136,6 @@ class Background{
 	 * @param y 		The y position, if position is Normal or Percent
 	 */
 	public function setImage( image : Tile, size : BackgroundSize = null, width : Null<Float> = null, height : Null<Float> = null, position : Null<BackgroundPosition> = null, x : Null<Float> = null, y : Null<Float> = null ){
-		var callback : Void -> Void = onChange; onChange = null; // prevent callback until the end
 		if (image != null) this.image = image;
 		if (size != null) this.imageSize = size;
 		if (width != null) this.imageWidth = width;
@@ -149,147 +144,146 @@ class Background{
 		if (x != null) this.imageX = x;
 		if (y != null) this.imageY = y;
 		visible = true;
-		onChange = callback;
-		if (onChange != null) onChange();
+		invalidate();
 	}
 
 	/**
 	 * Setters
 	 */
-	function set_color( v : Null<Int> ) : Null<Int>{
-		if (color != v){
-			color = v;
-			changed();
+	function set_fillColor( v : Null<Int> ) : Null<Int>{
+		if (fillColor != v){
+			fillColor = v;
+			invalidate();
 		}
 		return v;
 	}
-	function set_alpha( v : Float ) : Float{
-		var n = hxd.Math.clamp(v);
-		if (alpha != n){
-			alpha = n;
-			changed();
-		}
+	function set_opacity( v : Float ) : Float{
+		alpha = v;
+		invalidate();
 		return v;
 	}
-	function set_visible( v : Bool ) : Bool{
-		if (visible != v){
-			visible = v;
-			changed();
-		}
+	function get_opacity() : Float{
+		return alpha;
+	}
+	override function set_visible( v : Bool ) : Bool{
+		super.set_visible(v);
+		invalidate();
 		return v;
 	}
 	function set_image( v : Tile ) : Tile{
 		if (image != v){
 			image = v;
-			changed();
+			invalidate();
 		}
 		return v;
 	}
 	function set_imageAlpha( v : Float ) : Float{
 		if (imageAlpha != v){
 			imageAlpha = hxd.Math.clamp(v);
-			changed();
+			invalidate();
 		}
 		return v;
 	}
 	function set_imageSize( v : BackgroundSize ) : BackgroundSize{
 		if (imageSize != v){
 			imageSize = v;
-			changed();
+			invalidate();
 		}
 		return v;
 	}
 	function set_imageWidth( v : Float ) : Float{
 		if (imageWidth != v){
 			imageWidth = v;
-			changed();
+			invalidate();
 		}
 		return v;
 	}
 	function set_imageHeight( v : Float ) : Float{
 		if (imageHeight != v){
 			imageHeight = v;
-			changed();
+			invalidate();
 		}
 		return v;
 	}
 	function set_imagePositionH( v : BackgroundPosition ) : BackgroundPosition{
 		if (imagePositionH != v){
 			imagePositionH = v;
-			changed();
+			invalidate();
 		}
 		return v;
 	}
 	function set_imagePositionV( v : BackgroundPosition ) : BackgroundPosition{
 		if (imagePositionV!=v){
 			imagePositionV = v;
-			changed();
+			invalidate();
 		}
 		return v;
 	}
 	function set_imageX( v : Float ) : Float{
 		if (imageX != v){
 			imageX = v;
-			changed();
+			invalidate();
 		}
 		return v;
 	}
 	function set_imageY( v : Float ) : Float{
 		if (imageY != v){
 			imageY = v;
-			changed();
+			invalidate();
 		}
 		return v;
 	}
 	function set_imageRepeat( v : Bool ) : Bool{
 		if (imageRepeat != v){
 			imageRepeat = v;
-			changed();
+			invalidate();
 		}
 		return v;
 	}
-	inline function changed(){
-		if (onChange!=null){
-			var callback : Void -> Void = onChange;
-			onChange = null;
-			callback();
-			onChange = callback;
-		}
+
+	/**
+	 * Flag that this element needs a re-sync (and re-draw) next frame
+	 */
+	public function invalidate(){
+		needRedraw = true;
 	}
 
 	/**
-	 * Populate background from external data
-	 * @param data 	The data
+	 * Called by the parent to reposition or resize the background
+	 * @param rect 		The area to position within
 	 */
-	public function fromData( data : haxe.DynamicAccess<Dynamic> ){
-		var callback : Void -> Void = onChange; onChange = null; // Ensure we don't recurse
+	public function update( r : Rect ){
+		this.rect.from(r);
+		this.x = this.rect.x;
+		this.y = this.rect.y;
 
-		if (data.exists('color')) this.color = Std.parseInt(data.get('color'));
-		if (data.exists('alpha')) this.alpha = Std.parseFloat(data.get('alpha'));
-		if (data.exists('visible')) this.visible = cast(data.get('visible'),String).toLowerCase()=='true';
-
-		if (callback != null) callback();
-		onChange = callback;
+		invalidate();
 	}
 
 	/**
-	 * Draw the background onto the canvas at the specified width and height 
-	 * @param canvas 	The Graphics object to draw to
-	 * @param width 	The width of the background
-	 * @param height 	The height of the background
+	 * Draw the background at the specified width and height 
+	 * @param ctx	The render context
 	 */
-	public function drawTo( canvas : Graphics, width : Float, height : Float, radius : Float = 0 ) {
-		canvas.clear();
+	override public function draw( ctx : RenderContext ) {
+		super.draw( ctx );
+		if (!needRedraw) return;
+		needRedraw = false;
+
+		this.clear();
 		if (!visible) return;
+		if (rect.empty()) return;
 
-		canvas.alpha = this.alpha;
-		if (color!=null){
-			var a : Float = ((color>>24) & 255)/255;
+		// XXX: Make radius editable
+		// XXX: Change to top-radius, left-radius etc
+		var radius : Float = 0;
+
+		if (fillColor!=null){
+			var a : Float = ((fillColor>>24) & 255)/255;
 			if (a==0) a = 1;
-			canvas.beginFill( color, a );
-			if (radius>0) canvas.drawRoundedRect(0,0,width,height,radius);
-			else canvas.drawRect(0,0,width,height);
-			canvas.endFill();
+			this.beginFill( fillColor, a );
+			if (radius>0) this.drawRoundedRect(0,0,rect.width,rect.height,radius);
+			else this.drawRect(0,0,rect.width,rect.height);
+			this.endFill();
 		}
 		if (image!=null){
 			var sx : Float;
@@ -300,41 +294,41 @@ class Background{
 			var y : Float;
 			switch (imageSize){
 				case Fit: {
-					sx = sy = Math.min(width/image.width, height/image.height);
+					sx = sy = Math.min(rect.width/image.width, rect.height/image.height);
 					w = image.width*sx;
 					h = image.height*sy;
-					x = calculateImagePosH( w, width );
-					y = calculateImagePosV( h, height );
+					x = calculateImagePosH( w, rect.width );
+					y = calculateImagePosV( h, rect.height );
 				}
 				case Fill: {
-					sx = sy = Math.max(width/image.width, height/image.height);
+					sx = sy = Math.max(rect.width/image.width, rect.height/image.height);
 					w  = image.width*sx;
 					h  = image.height*sy;
-					x  = calculateImagePosH( w, width );
-					y  = calculateImagePosV( h, height );
+					x  = calculateImagePosH( w, rect.width );
+					y  = calculateImagePosV( h, rect.height );
 				}
 				case Normal: {
 					w = calculateImageWidth();
 					h = calculateImageHeight();
 					sx = w/image.width;
 					sy = h/image.height;
-					x = calculateImagePosH( w, width );
-					y = calculateImagePosV( h, height );
+					x = calculateImagePosH( w, rect.width );
+					y = calculateImagePosV( h, rect.height );
 				}
 				case Percent: {
-					w = calculateImageWidthPC( width, height );
-					h = calculateImageHeightPC( width, height );
+					w = calculateImageWidthPC( rect.width, rect.height );
+					h = calculateImageHeightPC( rect.width, rect.height );
 					sx  = w/image.width;
 					sy  = h/image.height;
-					x = calculateImagePosH( w, width );
-					y = calculateImagePosV( h, height );
+					x = calculateImagePosH( w, rect.width );
+					y = calculateImagePosV( h, rect.height );
 				}
 			}
-			canvas.beginTileFill(x,y,sx,sy,image);
+			this.beginTileFill(x,y,sx,sy,image);
 			if (imageRepeat){
-				canvas.tileWrap = true;
-				if (radius>0) canvas.drawRoundedRect(0,0,width,height,radius);
-				else canvas.drawRect(0,0,width,height);
+				this.tileWrap = true;
+				if (radius>0) this.drawRoundedRect(0,0,rect.width,rect.height,radius);
+				else this.drawRect(0,0,rect.width,rect.height);
 			}
 			else{
 				if (x<0){
@@ -345,17 +339,17 @@ class Background{
 					h += y;
 					y = 0;
 				}
-				if ((x+w)>width){
-					w = width-x;
+				if ((x+w)>rect.width){
+					w = rect.width-x;
 				}
-				if ((y+h)>height){
-					h = height-y;
+				if ((y+h)>rect.height){
+					h = rect.height-y;
 				}
-				canvas.tileWrap = false;
-				if (radius>0) canvas.drawRoundedRect(x,y,w,h,radius);
-				else canvas.drawRect(x,y,w,h);
+				this.tileWrap = false;
+				if (radius>0) this.drawRoundedRect(x,y,w,h,radius);
+				else this.drawRect(x,y,w,h);
 			}
-			canvas.endFill();
+			this.endFill();
 		}
 	}
 

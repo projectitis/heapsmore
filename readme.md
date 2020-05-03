@@ -20,6 +20,12 @@ The package structure is similar to Heaps:
 
 ## Changes
 
+__2020-05-03__
+* UI: Rudimentary Flow object (pinterest style columns)
+
+__2020-05-02__
+* UI: Redo entire UI system from scratch using lessons learned so far!
+
 __2020-04-28__
 * UI: Created Param for relative sizes (supports px, %, pw, ph, vw,vh)
 * UI: Started UIApp (extends hxd.App) specifically for an m2d.ui based app

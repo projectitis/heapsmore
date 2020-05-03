@@ -1,103 +1,249 @@
 package m2d.ui;
 
+import h2d.RenderContext;
+import h2d.Graphics;
 import h2d.Object;
-import m2d.ui.Box;
-import m2d.ui.Param;
+import m2d.ui.BorderDimension;
 
 /**
- * One side of a border
+ * Rect for UI elements that describes 4 borders. Used internally by UI elements
  */
-class Border{
+class Border extends Graphics{
 
 	/**
-	 * Value for border size
+	 * Top side
 	 */
-	var s : Param = new Param();
+	public var top : BorderDimension = new BorderDimension();
 
 	/**
-	 * Top anchor for positioning
+	 * Bottom side
 	 */
-	public var parent(get,set) : Box;
+	public var bottom : BorderDimension = new BorderDimension();
 
 	/**
-	 * Size of a BoxColor will never be negative
+	 * Left side
 	 */
-	public var size(get,set) : Float;
+	public var left : BorderDimension = new BorderDimension();
 
 	/**
-	 * Color
+	 * Right side
 	 */
-	public var color(default,set) : Int = 0;
+	public var right : BorderDimension = new BorderDimension();
 
 	/**
 	 * Callback when size changes
 	 */
-	public var onChangeSize : Void -> Void = null;
+	public var onChange : Void -> Void = null;
+
+	var rect : Rect = new Rect(); // Area covered by border (to outside)
+	var needRedraw : Bool = true; // Redraw flag
 
 	/**
-	 * Callback when color changes
+	 * Create a new Border
 	 */
-	public var onChangeColor : Void -> Void = null;
-
-	/**
-	 * Create new BoxArea with specified width and height
-	 * @param width 
-	 * @param height 
-	 */
-	public function new( ?size : Float, ?color : Int ){
-		s.setMinValue(0);
-		if (size!=null) this.s.setValue( size );
-		if (color!=null) this.color = color;
+	public function new( ?parent : Object ){
+		super( parent );
+		top.onChange = changed;
+		bottom.onChange = changed;
+		left.onChange = changed;
+		right.onChange = changed;
 	}
 
-	/**
-	 * Parent
-	 */
-	function get_parent() : Box{
-		return s.parent;
-	}
-	function set_parent( v : Box ) : Box{
-		s.parent = v;
-		sizeChanged();
-		return v;
-	}
-
-	/**
-	 * Size
-	 */
-	function get_size() : Float{
-		return s.value;
-	}
-	function set_size( v : Float ) : Float{
-		this.s.setValue( v );
-		sizeChanged();
-		return v;
-	}
-	public function setSize( ?v : Float, ?s : String ){
-		this.s.setValue( v, s );
-		sizeChanged();
-	}
-	function sizeChanged(){
-		if (onChangeSize!=null){
-			var callback : Void -> Void = onChangeSize;
-			onChangeSize = null;
+	function changed(){
+		if (onChange != null){
+			var callback : Void -> Void = onChange;
+			onChange = null;
 			callback();
-			onChangeSize = callback;
+			onChange = callback;
 		}
+		invalidate();
 	}
 
 	/**
-	 * Color
+	 * Shorthand for setting size all four sides at once
+	 * @param v 	The value in pixels, or
+	 * @param s 	A string with value and units. If no units, px is assumed. Supported:
+	 * 					px (pixels), 
+	 * 					% (same as pw),
+	 * 					pw (parent width),
+	 * 					ph (parent height),
+	 * 					p- (parent smalest dim),
+	 * 					p+ (parent largest dim),
+	 * 					vw (viewport/stage width),
+	 * 					vh (viewport/stage height),
+	 * 					v- (viewport/stage smallest dim),
+	 * 					v+ (viewport/stage largest dim)
 	 */
-	function set_color( c : Int ) : Int{
-		this.color = c;
-		if (onChangeColor!=null){
-			var callback : Void -> Void = onChangeColor;
-			onChangeColor = null;
-			callback();
-			onChangeColor = callback;
+	public function set( ?v : Float, ?s : String ){
+		var callback : Void -> Void = onChange;
+		onChange = null;
+
+		top.set(v,s);
+		right.set(v,s);
+		bottom.set(v,s);
+		left.set(v,s);
+
+		if (callback != null) callback();
+		onChange = callback;
+	}
+
+	/**
+	 * Shorthand for unsetting size of all four sides at once
+	 */
+	public function unset(){
+		var callback : Void -> Void = onChange;
+		onChange = null;
+
+		top.unset();
+		right.unset();
+		bottom.unset();
+		left.unset();
+
+		if (callback != null) callback();
+		onChange = callback;
+	}
+
+	/**
+	 * Shorthand to set side.color for all four sides
+	 * @param c 	The color
+	 */
+	public function setFillColor( c : Int ){
+		var callback : Void -> Void = onChange;
+		onChange = null;
+
+		top.color = c;
+		right.color = c;
+		bottom.color = c;
+		left.color = c;
+
+		if (callback != null) callback();
+		onChange = callback;
+	}
+
+	/**
+	 * Shorthand to set side.alpha for all four sides
+	 * @param a 	The alpha
+	 */
+	 public function setFillAlpha( a : Float ){
+		var callback : Void -> Void = onChange;
+		onChange = null;
+
+		top.alpha = a;
+		right.alpha = a;
+		bottom.alpha = a;
+		left.alpha = a;
+
+		if (callback != null) callback();
+		onChange = callback;
+	}
+
+	/**
+	 * Add this BorderRect to the rect to grow it
+	 * @param rect 	The rect to apply to
+	 */
+	public function growRect( rect : Rect, pw : Float, ph : Float, vw : Float, vh : Float ){
+		var l : Float = left.get(pw,ph,vw,vh);
+		var r : Float = right.get(pw,ph,vw,vh);
+		var t : Float = top.get(pw,ph,vw,vh);
+		var b : Float = bottom.get(pw,ph,vw,vh);
+		rect.x -= l;
+		rect.width += l + r;
+		rect.y -= t;
+		rect.height += t + b;
+	}
+
+	/**
+	 * Subtract this BorderRect from the rect to shrink it
+	 * @param rect 	The rect to apply to
+	 */
+	public function shrinkRect( rect : Rect, pw : Float, ph : Float, vw : Float, vh : Float ){
+		var l : Float = left.get(pw,ph,vw,vh);
+		var r : Float = right.get(pw,ph,vw,vh);
+		var t : Float = top.get(pw,ph,vw,vh);
+		var b : Float = bottom.get(pw,ph,vw,vh);
+		rect.x += l;
+		rect.width -= l + r;
+		rect.y += t;
+		rect.height -= t + b;
+	}
+
+	/**
+	 * Flag that this element needs a re-sync (and re-draw) next frame
+	 */
+	public function invalidate(){
+		needRedraw = true;
+	}
+
+	/**
+	 * Called by the parent to reposition or resize the background
+	 * @param rect 		The area to position within
+	 */
+	public function update( r : Rect ){
+		this.rect.from(r);
+		this.x = this.rect.x;
+		this.y = this.rect.y;
+
+		invalidate();
+	}
+
+	/**
+	 * Draw the background onto the canvas at the specified width and height 
+	 * @param ctx 	The render context
+	 */
+	override public function draw( ctx : RenderContext ) {
+		super.draw( ctx );
+		if (!needRedraw) return;
+		needRedraw = false;
+
+		this.clear();
+		if (!visible) return;
+		if (rect.empty()) return;
+
+		var l : Float = left.get(rect.width,rect.height,ctx.scene.width,ctx.scene.height);
+		var t : Float = top.get(rect.width,rect.height,ctx.scene.width,ctx.scene.height);
+		var b : Float = bottom.get(rect.width,rect.height,ctx.scene.width,ctx.scene.height);
+		var r : Float = right.get(rect.width,rect.height,ctx.scene.width,ctx.scene.height);
+
+		// Top border
+		if (!top.undefined){
+			this.moveTo(0,0);
+			this.beginFill( top.color, top.alpha );
+			this.lineTo(rect.width,0);
+			this.lineTo(rect.width-r,t);
+			this.lineTo(l,t);
+			this.lineTo(0,0);
+			this.endFill();
 		}
-		return c;
+		// Right border
+		if (!right.undefined){
+			this.moveTo(rect.width,0);
+			this.beginFill( right.color, right.alpha );
+			this.lineTo(rect.width,rect.height);
+			this.lineTo(rect.width-r,rect.height-b);
+			this.lineTo(rect.width-r,t);
+			this.lineTo(rect.width,0);
+			this.endFill();
+		}
+		// Bottom border
+		if (!bottom.undefined){
+			this.moveTo(0,rect.height);
+			this.beginFill( bottom.color, bottom.alpha );
+			this.lineTo(rect.width,rect.height);
+			this.lineTo(rect.width-r,rect.height-b);
+			this.lineTo(l,rect.height-b);
+			this.lineTo(0,rect.height);
+			this.endFill();
+		}
+		// Left border
+		if (!left.undefined){
+			this.moveTo(0,0);
+			this.beginFill( left.color, left.alpha );
+			this.lineTo(0,rect.height);
+			this.lineTo(l,rect.height-b);
+			this.lineTo(l,t);
+			this.lineTo(0,0);
+			this.endFill();
+		}
 	}
 
 }
