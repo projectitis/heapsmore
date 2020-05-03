@@ -14,9 +14,9 @@ The package structure is similar to Heaps:
 * __examples__ - Examples :)
 
 ## TODO
-* Update Param to specifically use Box parent
-* Update param to call parent.contentWidth/height
-* Move param to m2d.ui (tied in with ui because of Object and UIApp)
+* Add scroll areas (overflow:scroll) to Canvas
+* Implement Table class based on Flow
+* Update TextArea as Canvas
 
 ## Changes
 
