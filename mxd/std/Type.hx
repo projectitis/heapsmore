@@ -10,8 +10,11 @@ class Type extends std.Type{
 	 * @return Bool     True if the field exists, otherwise false
 	 */
 	public static function hasInstanceField( o:Dynamic, ?field : String, ?fields : Array<String> ) : Bool{
-		if ((field==null) && (fields==null)) return false;
-		if (fields==null) fields = [field];
+		if (o==null) return false;
+		if (fields==null){
+			if (field==null) return false;
+			fields = [field];
+		}
 		var instanceFields = std.Type.getInstanceFields(std.Type.getClass(o));
 		var i = -1;
 		for (f in instanceFields){

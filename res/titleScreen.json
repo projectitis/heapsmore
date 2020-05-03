@@ -1,0 +1,39 @@
+{
+	"width": "100pw",
+	"height": "100ph",
+	"background": {
+		"visible": "true",
+		"color": "0x8f8767"
+	},
+	"padding": 20,
+	"fonts": {
+		"normal": "fonts/pixel/KiwiSoda.bdf",
+		"italic": {
+			"path": "fonts/pixel/PixelArial11-Italic.bdf"
+		}
+	},
+	"styles": {
+		"bg": {
+			"background": {
+				"visible": "true",
+				"color": "0x8f8767"
+			}
+		},
+		"textarea-normal": {
+			"font": "normal",
+			"color": "0xffffff",
+			"align": "Justify",
+			"style": "bg",
+			"line-spacing": "1.25"
+		}
+	},
+	"children": [
+		{
+			"type": "TextArea",
+			"style": "textarea-normal",
+			"width": "50%",
+			"auto-height": "true",
+			"text": "Mrs. Darling loved to have everything just so, and Mr. Darling had a passion for being exactly like his neighbours; so, of course they had a nurse. As they were poor, owing to the amount of milk the children drank, this nurse was a prim Newfoundland dog, called Nana."
+		}
+	]
+}
