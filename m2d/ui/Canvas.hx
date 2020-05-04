@@ -104,8 +104,18 @@ class Canvas extends Drawable{
 	 */
 	public var margins(get,never) : Sides;
 
+	/**
+	 * Convenience properties for subclasses
+	 */
+	var topSpacing(get,never) : Float;			// Top padding + border + margin
+	var bottomSpacing(get,never) : Float;		// Bottom		"
+	var leftSpacing(get,never) : Float;			// Left			"
+	var rightSpacing(get,never) : Float;		// Right		"
+	var verticalSpacing(get,never) : Float;		// Top and bottom padding + border + margin
+	var horizontalSpacing(get,never) : Float;	// Left and right 		"
+
 	var parentRect : Rect = new Rect();		// Total available area to all siblings
-	var elementRect : Rect = new Rect();		// Total available area to this element
+	var elementRect : Rect = new Rect();	// Total available area to this element
 	var marginRect : Rect = new Rect();		// Margin + border + padding + content
 	var marginSides : Sides = new Sides();
 	var borderRect : Rect = new Rect();		// Border + padding + content
@@ -149,6 +159,25 @@ class Canvas extends Drawable{
 		return marginSides;
 	}
 
+	function get_topSpacing(){
+		return contentRect.y - marginRect.y;
+	}
+	function get_bottomSpacing(){
+		return marginRect.y2 - contentRect.y2;
+	}
+	function get_leftSpacing(){
+		return contentRect.x - marginRect.x;
+	}
+	function get_rightSpacing(){
+		return marginRect.x2 - contentRect.x2;
+	}
+	function get_verticalSpacing(){
+		return marginRect.height - contentRect.height;
+	}
+	function get_horizontalSpacing(){
+		return marginRect.width - contentRect.width;
+	}
+
 	/**
 	 * Flag that this element needs a re-sync (and re-draw) next frame
 	 */
@@ -183,14 +212,19 @@ class Canvas extends Drawable{
 
 			sync_pre( ctx );
 
-			sync_sibling( ctx );
-			sync_element( ctx );
+			sync_layout( ctx );
+			sync_position( ctx );
 			sync_children( ctx );
+
+			sync_main( ctx );
 		}
 
 		super.sync( ctx );
 
-		if (nr) sync_post( ctx );
+		if (nr){
+			sync_reposition( ctx );
+			sync_post( ctx );
+		}
 	}
 
 	/**
@@ -199,9 +233,20 @@ class Canvas extends Drawable{
 	function sync_pre( ctx:RenderContext ){}
 
 	/**
-	 * Sync operations that are based on previous sibling
+	 * Override to perform main sync operations after layout, position and children have been updated
 	 */
-	function sync_sibling( ctx:RenderContext ){
+	function sync_main( ctx:RenderContext ){}
+
+	/**
+	 * Override to perform any final sync operations
+	 */
+	function sync_post( ctx:RenderContext ){}
+
+	/**
+	 * Sync operations that adjust size and position based on previous sibling. This is
+	 * used to stack elements in layouts.
+	 */
+	function sync_layout( ctx:RenderContext ){
 		// Get previous sibling
 		if (position != Absolute){
 			var c : Canvas = null;
@@ -235,9 +280,11 @@ class Canvas extends Drawable{
 	}
 
 	/**
-	 * Sync operations that calculate the position and size of this element
+	 * Sync operations that calculate the position and size of this element. This sets all the various rects
+	 * (content, padding, border, margin) based on the position and size properties of the element.
+	 * Sub-classes are able to adjust the size of contentRect, which are then picked up in sync_reposition.
 	 */
-	function sync_element( ctx:RenderContext ){
+	function sync_position( ctx:RenderContext ){
 		// Precalcuate dimensions
 		var l : Float = left.get(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
 		var t : Float = top.get(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
@@ -323,7 +370,6 @@ class Canvas extends Drawable{
 		marginRect.y = 0;
 
 		// Update areas
-		// XXX: Handle widths/heights that go negative (in shrinkRect?)
 		borderRect.from( marginRect );
 		margin.shrinkRect( borderRect, parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
 		paddingRect.from( borderRect );
@@ -334,12 +380,6 @@ class Canvas extends Drawable{
 		marginSides.right = marginRect.x2 - borderRect.x2;
 		marginSides.left = borderRect.x - marginRect.x;
 		marginSides.bottom = marginRect.y2 - borderRect.y2;
-
-		// Update the background
-		background.update( paddingRect );
-
-		// Update the border
-		border.update( borderRect );
 	}
 
 	/**
@@ -353,9 +393,28 @@ class Canvas extends Drawable{
 	}
 
 	/**
-	 * Override to perform any final sync operations
+	 * The content rect may have changed, so do any final repositioning based on that.
+	 * @param ctx 
 	 */
-	 function sync_post( ctx:RenderContext ){}
+	function sync_reposition( ctx:RenderContext ){
+		// Update areas based on content
+		paddingRect.from( contentRect );
+		padding.growRect( paddingRect, parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
+		borderRect.from( paddingRect );
+		border.growRect( borderRect, parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
+		marginRect.from( borderRect );
+		margin.growRect( marginRect, parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
+		marginSides.top = borderRect.y - marginRect.y;
+		marginSides.right = marginRect.x2 - borderRect.x2;
+		marginSides.left = borderRect.x - marginRect.x;
+		marginSides.bottom = marginRect.y2 - borderRect.y2;
+
+		// Update the background
+		background.update( paddingRect );
+
+		// Update the border
+		border.update( borderRect );
+	}
 
 	/**
 	 * Sub-classes should override this to draw the UI element. Any size calculations

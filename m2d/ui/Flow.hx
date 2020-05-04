@@ -82,26 +82,33 @@ class Flow extends Canvas{
 		// Position the items
 		var c : Int = 0;
 		var x : Float = 0;
-trace('Initial x: $x');
+		var r : Rect = new Rect();
+trace('Initial x: $x cc:$cc');
+
 		for (item in items){
 trace('Item ${item.name}');
 			// Reset
-			item.left.unset();
-			item.top.unset();
-			item.right.unset();
+			item.left.set(0);
+			item.top.set(0);
+			item.right.set(0);
 			item.bottom.unset();
 			item.width.unsetMin();
 			item.width.unsetMax();
+			item.width.set('100pw');
 			item.position = Absolute;
 
-			// Set
-			item.left.set(x);
-			item.top.set(columns[c]);
-			item.width.set(colWidth);
-trace('  Placed at: ${x},${columns[c]} with width $colWidth');
+			// Not calling parent.sync_children. Doing it here instead. We are also calling
+			// sync directly on the child. When child.sync is called again shortly it will be
+			// ignored because sync has already occured (needSync flag will be false) but we
+			// need sync now to give child opporunity to adjust height.
+			r.set( contentRect.x + x, contentRect.y + columns[c], colWidth, contentRect.height - columns[c] );
+r.trace('  r');
+			item.update( r );
+			item.sync( ctx );
+item.contentRect.trace('  contentRect');
 
 			// Update column height
-			columns[c] += item.height.get(elementRect.width,elementRect.height,ctx.scene.width,ctx.scene.height) + rs;
+			columns[c] += item.marginRect.height + rs;
 
 			// Move to next col
 			x += (colWidth + cs);
@@ -111,9 +118,6 @@ trace('  Placed at: ${x},${columns[c]} with width $colWidth');
 				c = 0;
 			}
 		}
-
-		// Continue sync
-		super.sync_children( ctx );
 	}
 
 	/**
