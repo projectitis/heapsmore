@@ -6,6 +6,15 @@ import hxd.Math;
 import m2d.ui.Dimension;
 
 /**
+ * How the flow manages the height of rows
+ */
+enum FlowRowSizing {
+	None;		// No effort to maintain. Each element can be a different height
+	Row;		// All items in the same row are set to the height of the tallest in that row
+	All;		// All items in the whole flow are set to the height of the tallest item in the flow
+}
+
+/**
  * A canvas item that allows items to be layed out in columns. Will override any custom
  * layour properties of immediate children (such as width, margin etc)
  */
@@ -31,7 +40,10 @@ class Flow extends Canvas{
 	 */
 	public var columnCount(default,set) : Int = 0;
 
-	var columns : Array<Float> = new Array(); // Reference to height of each column
+	/**
+	 * How the size of the rows are handled. None = all elements at their own heights. None, Row, All.
+	 */
+	public var rowSizing : FlowRowSizing = None;
 
 	public function new( ?parent : Object ){
 		super( parent );
@@ -76,56 +88,91 @@ class Flow extends Canvas{
 		colWidth = (contentRect.width - cs*(cc-1)) / cc;
 
 		// Update the column references
-		columns.resize(cc);
-		for (i in 0...cc) columns[i] = 0;
+		var columns : Array<Float> = new Array();
+		var rows : Array<Float> = new Array();
+		columns.resize( cc );
 
 		// Position the items
 		var c : Int = 0;
 		var x : Float = 0;
 		var r : Rect = new Rect();
-trace('Initial x: $x cc:$cc');
+		var mx : Float = 0;
+		var my : Float = 0;
+		var ch : Float = 0;
+		var mh : Float = 0;
+		for (reflow in 0...2){
+			c = 0;
+			x = 0;
+			mx = 0;
+			my = 0;
+			ch = 0;
+			for (i in 0...cc) columns[i] = 0;
+			for (item in items){
+				// First time through
+				if (reflow==0){
+					// Reset
+					item.position = Absolute;
+					item.left.set(0);
+					item.top.set(0);
+					item.right.set(0);
+					item.bottom.unset();
+					item.width.unsetMin();
+					item.width.unsetMax();
+					item.width.set('100pw');
+					if (rowSizing!=None) item.height.set('auto');
+					ch = contentRect.height - columns[c];
+				}
+				// Reflowing
+				else{
+					if (rowSizing==Row) ch = rows[0];
+					else ch = mh;
+					item.height.set(ch);
+					if (c==0) trace('Reflow row height to ${ch}');
+				}
 
-		for (item in items){
-trace('Item ${item.name}');
-			// Reset
-			item.left.set(0);
-			item.top.set(0);
-			item.right.set(0);
-			item.bottom.unset();
-			item.width.unsetMin();
-			item.width.unsetMax();
-			item.width.set('100pw');
-			item.position = Absolute;
+				// Not calling parent.sync_children. Doing it here instead. We are also calling
+				// sync directly on the child. When child.sync is called again shortly it will be
+				// ignored because sync has already occured (needSync flag will be false) but we
+				// need sync now to give child opporunity to adjust height.
+				r.set( contentRect.x + x, contentRect.y + columns[c], colWidth, ch );
+				item.update( r );
+				item.sync( ctx );
+				mx = Math.max(mx, x + item.rect.width );
+				my = Math.max(my, columns[c] + item.rect.height); 
+				if (reflow==0){
+					mh = Math.max(mh, item.rect.height);
+					trace('  mh: $mh');
+				}
 
-			// Not calling parent.sync_children. Doing it here instead. We are also calling
-			// sync directly on the child. When child.sync is called again shortly it will be
-			// ignored because sync has already occured (needSync flag will be false) but we
-			// need sync now to give child opporunity to adjust height.
-			r.set( contentRect.x + x, contentRect.y + columns[c], colWidth, contentRect.height - columns[c] );
-r.trace('  r');
-			item.update( r );
-			item.sync( ctx );
-item.contentRect.trace('  contentRect');
+				// Update column height
+				columns[c] += item.rect.height + rs;
 
-			// Update column height
-			columns[c] += item.marginRect.height + rs;
-
-			// Move to next col
-			x += (colWidth + cs);
-			c++;
-			if (c==cc){
-				x = 0;
-				c = 0;
+				// Move to next col
+				x += (colWidth + cs);
+				c++;
+				if (c==cc){
+					x = 0;
+					c = 0;
+					if (rowSizing==Row){
+						if (reflow==0) {
+							rows.push( mh );
+							trace('SET ROW ${rows.length} HEIGHT: $mh');
+						}
+						else rows.shift();
+						mh = 0;
+					}
+				}
 			}
-		}
+			if ((reflow==0) && (c>0)){
+				rows.push( mh );
+				trace('SET ROW ${rows.length} HEIGHT: $mh (final)');
+			}
+
+			// If we don't need to re-flow, we break here, otherwise we go around for a reflow
+			if (rowSizing==None) break;
+		} // reflow
+		if (height.auto) contentRect.height = my;
+		if (width.auto) contentRect.width = mx;
 	}
-
-	/**
-	 * XXX: Re-flow after the children sync process?
-	 */
-	override function sync_post( ctx:RenderContext ){
-
-	}
-
 
 }

@@ -30,7 +30,7 @@ enum CanvasUnit{
  * Position supported by the canvas
  */
 enum CanvasPosition{
-	Static;
+	Relative;
 	Absolute;
 }
 
@@ -50,9 +50,9 @@ class Canvas extends Drawable{
 	public var border : Border;
 
 	/**
-	 * Positioning. Static (default) is where it would usually appear. Absolute means it does not respect siblings.
+	 * Positioning. Relative (default) is where it would usually appear. Absolute means it does not respect siblings.
 	 */
-	public var position(default,set) : CanvasPosition = Static;
+	public var position(default,set) : CanvasPosition = Relative;
 
 	/**
 	 * Offset from the top of the parent
@@ -75,12 +75,12 @@ class Canvas extends Drawable{
 	public var bottom : Dimension = new Dimension();
 
 	/**
-	 * Total target height of this element (excluding margins)
+	 * Total target height of this element (excluding margins). If width is not set, 100% (100pw) is used
 	 */
 	public var width : Dimension = new Dimension();
 
 	/**
-	 * Total target width of this element (excluding margins)
+	 * Total target width of this element (excluding margins). If height is not set, height is determined by child elements
 	 */
 	public var height : Dimension = new Dimension();
 
@@ -255,7 +255,7 @@ class Canvas extends Drawable{
 				if (child == this) break;
 				if (Std.is(child,Canvas)){
 					c = cast(child,Canvas);
-					// Ignore 'floating' elements which are not statically positioned
+					// Ignore 'floating' elements which are not relatively positioned
 					if (c.position != Absolute) sibling = c;
 				}
 			}
@@ -300,21 +300,21 @@ class Canvas extends Drawable{
 			// Both left and right are set. Ignore width
 			if (!right.undefined) marginRect.width = elementRect.width - l - r;
 			// Left and width are set. Use width (but limit to parent area)
-			else if (!width.undefined) marginRect.width = Math.max(0,Math.min(w,elementRect.width - l));
+			else if (!width.undefined && !width.auto) marginRect.width = Math.max(0,Math.min(w,elementRect.width - l));
 			// Otherwise fill from left to edge (100%)
 			else marginRect.width = elementRect.width - l;
 		}
 		// Right is set...
 		else if (!right.undefined){
 			// Right and width are set. Use width (but limit to parent area)
-			if (!width.undefined) marginRect.width = Math.max(0,Math.min(w,elementRect.width - r));
+			if (!width.undefined && !width.auto) marginRect.width = Math.max(0,Math.min(w,elementRect.width - r));
 			// Otherwise fill from right to edge (100%)
 			else marginRect.width = elementRect.width - r;
 			// Set left
 			marginRect.x = elementRect.x2 - r - marginRect.width;
 		}
 		// Neither left or right, but width is set..
-		else if (!width.undefined){
+		else if (!width.undefined && !width.auto){
 			// Set left
 			marginRect.x = elementRect.x;
 			// Use width (but limit to parent area)
@@ -335,21 +335,21 @@ class Canvas extends Drawable{
 			// Both top and bottom are set. Ignore height
 			if (!bottom.undefined) marginRect.height = elementRect.height - t - b;
 			// Top and height are set. Use height (but limit to parent area)
-			else if (!height.undefined) marginRect.height = Math.max(0,Math.min(h,elementRect.height - t));
+			else if (!height.undefined && !height.auto) marginRect.height = Math.max(0,Math.min(h,elementRect.height - t));
 			// Otherwise fill from top to edge (100%)
 			else marginRect.height = elementRect.height - t;
 		}
 		// Bottom is set...
 		else if (!bottom.undefined){
 			// Top and height are set. Use height (but limit to parent area)
-			if (!height.undefined) marginRect.height = Math.max(0,Math.min(h,elementRect.height - b));
+			if (!height.undefined && !height.auto) marginRect.height = Math.max(0,Math.min(h,elementRect.height - b));
 			// Otherwise fill from bottom to edge (100%)
 			else marginRect.height = elementRect.height - b;
 			// Set top
 			marginRect.y = elementRect.y2 - b - marginRect.height;
 		}
 		// Neither top or bottom, but height is set..
-		else if (!height.undefined){
+		else if (!height.undefined && !height.auto){
 			// Set top
 			marginRect.y = elementRect.y;
 			// Use height (but limit to parent area)
@@ -387,9 +387,20 @@ class Canvas extends Drawable{
 	 */
 	function sync_children( ctx:RenderContext ){
 		// Update the children
+		var mx : Float = 0;
+		var my : Float = 0;
+		var c : Canvas = null;
 		for (child in children){
-			if (Std.is(child,Canvas)) cast(child,Canvas).update( contentRect );
+			if (Std.is(child,Canvas)){
+				c = cast(child,Canvas);
+				c.update( contentRect );
+				c.sync( ctx );
+				mx = Math.max(mx,c.rect.x2);
+				my = Math.max(my,c.rect.y2);
+			}
 		}
+		if (height.auto) contentRect.height = my;
+		if (width.auto) contentRect.width = mx;
 	}
 
 	/**
