@@ -89,18 +89,6 @@ class Text extends Canvas{
 	public var heightInLines(get,set) : Int;
 
 	/**
-	 * Automatically adjust width while keeping height fixed. If both are set, will make the text area
-	 * as big as required to fit the full text.
-	 */
-	public var autoWidth : Bool = false;
-
-	/**
-	 * Automatically adjust height while keeping width fixed. If both are set, will make the text area
-	 * as big as required to fit the full text.
-	 */
-	public var autoHeight : Bool = false;
-
-	/**
 	 * Additional spacing between lines. Based on the font lineHeight (1=default)
 	 */
 	public var lineSpacing(default,set) : Float = 1;
@@ -223,10 +211,9 @@ class Text extends Canvas{
 		lines = new Array();
 		linesWidth = 0;
 		var mw : Int = Math.floor(contentRect.width);
-		if (autoWidth && width.hasMax()){
+		if (width.auto && width.hasMax()){
 			mw = Math.floor(width.getMax(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height));
 		}
-trace('    mw: $mw');
 		var ls : Float = font.lineHeight*(lineSpacing-1);	// Line spacing
 		var cs : Float = characterSpacing;	// Additional character spacing
 		var lw : Float = 0;					// Line width
@@ -313,8 +300,8 @@ trace('    mw: $mw');
 
 		// Calculate text width and height (note: last line doesn't have line spacing applied)
 		linesHeight = lines.length * (font.lineHeight + ls) - ls;
-		if (autoWidth) contentRect.width = linesWidth;
-		if (autoHeight) contentRect.height = linesHeight;
+		if (width.auto) contentRect.width = linesWidth;
+		if (height.auto) contentRect.height = linesHeight;
 
 		needRedraw = true;
 	}
