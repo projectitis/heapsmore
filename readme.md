@@ -15,10 +15,11 @@ The package structure is similar to Heaps:
 
 ## TODO
 * Add scroll areas (overflow:scroll) to Canvas
-* Implement Table class based on Flow
-* Update TextArea as Canvas
 
 ## Changes
+
+__2020-05-05__
+* UI: Added table formatting to flow. Added auto-height and width support to UI elements
 
 __2020-05-03__
 * UI: Rudimentary Flow object (pinterest style columns)
