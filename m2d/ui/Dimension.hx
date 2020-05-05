@@ -26,6 +26,11 @@ class Dimension{
 	 */
 	public var undefined(default,null) : Bool = true;
 
+	/**
+	 * Check if this dimension is set to auto
+	 */
+	public var auto(default,null) : Bool = true;
+
 	var value : Float = 0;
 	var unit : Unit = Pixels;
 	var min : Dimension = null;
@@ -52,6 +57,7 @@ class Dimension{
 		unit = Pixels;
 		value = 0;
 		undefined = true;
+		auto = false;
 		min = null;
 		max = null;
 		changed();
@@ -73,10 +79,11 @@ class Dimension{
 	 * 					v+ (viewport/stage largest dim)
 	 */
 	public function set( ?v : Float, ?s : String ){
+		undefined = false;
+		auto = false;
 		if (v != null){
 			unit = Pixels;
 			value = v;
-			undefined = false;
 		}
 		else if (s != null){
 			s = StringTools.trim(s.toLowerCase());
@@ -128,17 +135,22 @@ class Dimension{
 				unit = ViewportMax;
 				value = Std.parseFloat(s.substr(0,s.length-2));
 			}
+			else if (s=='auto'){
+				unit = Pixels;
+				value = 0;
+				auto = true;
+			}
 			// Default is to just try to parse to float: 230, 56.25
 			else{
 				unit = Pixels;
 				value = Std.parseFloat(s);
 			}
-			undefined = false;
 		}
 		else{
 			unit = Pixels;
 			value = 0;
 			undefined = true;
+			auto = false;
 			unsetMin();
 			unsetMax();
 		}
