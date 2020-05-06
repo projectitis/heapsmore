@@ -1,6 +1,7 @@
 package m2d.ui;
 
 import h2d.Object;
+import h2d.col.Bounds;
 import m2d.ui.Dimension;
 
 /**
@@ -97,33 +98,33 @@ class SideRect{
 	}
 
 	/**
-	 * Add this SideRect to the rect to grow it
-	 * @param rect 	The rect to apply to
+	 * Add this SideRect to the bounds to grow it
+	 * @param bounds 	The bounds to apply to
 	 */
-	public function growRect( rect : Rect, pw : Float, ph : Float, vw : Float, vh : Float ){
+	public function growBounds( bounds : Bounds, pw : Float, ph : Float, vw : Float, vh : Float ){
 		var l : Float = left.get(pw,ph,vw,vh);
 		var r : Float = right.get(pw,ph,vw,vh);
 		var t : Float = top.get(pw,ph,vw,vh);
 		var b : Float = bottom.get(pw,ph,vw,vh);
-		rect.x -= l;
-		rect.width += l + r;
-		rect.y -= t;
-		rect.height += t + b;
+		bounds.x -= l;
+		bounds.width += l + r;
+		bounds.y -= t;
+		bounds.height += t + b;
 	}
 
 	/**
-	 * Subtract this SideRect from the rect to shrink it. Rect width/height can never go -ve
-	 * @param rect 	The rect to apply to
+	 * Subtract this SideRect from the bounds to shrink it. Bound width/height can never go -ve
+	 * @param bounds 	The bounds to apply to
 	 */
-	public function shrinkRect( rect : Rect, pw : Float, ph : Float, vw : Float, vh : Float ){
+	public function shrinkBounds( bounds : Bounds, pw : Float, ph : Float, vw : Float, vh : Float ){
 		var l : Float = left.get(pw,ph,vw,vh);
 		var r : Float = right.get(pw,ph,vw,vh);
 		var t : Float = top.get(pw,ph,vw,vh);
 		var b : Float = bottom.get(pw,ph,vw,vh);
-		rect.x += l;
-		rect.width -= l + r;
-		rect.y += t;
-		rect.height -= t + b;
+		bounds.x += l;
+		bounds.width -= l + r;
+		bounds.y += t;
+		bounds.height -= t + b;
 	}
 
 }

@@ -188,7 +188,7 @@ class Text extends Canvas{
 	function get_heightInLines() : Int{
 		if (needResync) sync_main( ctx );
 		var ls : Float = font.lineHeight*(lineSpacing-1);	// Line spacing
-		var ch : Float = contentRect.height + ls;		
+		var ch : Float = contentBounds.height + ls;		
 		return Math.ceil(ch / (font.lineHeight+ls));
 	}
 
@@ -210,9 +210,9 @@ class Text extends Canvas{
 		// Process text to account for wrapping
 		lines = new Array();
 		linesWidth = 0;
-		var mw : Int = Math.floor(contentRect.width);
+		var mw : Int = Math.floor(contentBounds.width);
 		if (width.auto && width.hasMax()){
-			mw = Math.floor(width.getMax(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height));
+			mw = Math.floor(width.getMax(parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height));
 		}
 		var ls : Float = font.lineHeight*(lineSpacing-1);	// Line spacing
 		var cs : Float = characterSpacing;	// Additional character spacing
@@ -300,8 +300,8 @@ class Text extends Canvas{
 
 		// Calculate text width and height (note: last line doesn't have line spacing applied)
 		linesHeight = lines.length * (font.lineHeight + ls) - ls;
-		if (width.auto) contentRect.width = linesWidth;
-		if (height.auto) contentRect.height = linesHeight;
+		if (width.auto) contentBounds.width = linesWidth;
+		if (height.auto) contentBounds.height = linesHeight;
 
 		needRedraw = true;
 	}
@@ -329,8 +329,8 @@ class Text extends Canvas{
 
 		glyphs.setDefaultColor( textColor, 1 );
 		var ls : Float = font.lineHeight*(lineSpacing-1);	// Line spacing
-		var mw : Float = Math.floor(contentRect.width);			// Max width
-		var mh : Float = Math.floor(contentRect.height);		// Max height
+		var mw : Float = Math.floor(contentBounds.width);			// Max width
+		var mh : Float = Math.floor(contentBounds.height);		// Max height
 		var x : Float;
 		var y : Float = 0;
 		var cs : Float = 0; 		// Character spacing 
@@ -450,7 +450,7 @@ class Text extends Canvas{
 		}
 
 		// Position glyphs at to exact pixel
-		var p : Point = new Point( contentRect.x, contentRect.y );
+		var p : Point = contentBounds.getMin();
 		this.localToGlobal( p );
 		p.x = Math.round(p.x);
 		p.y = Math.round(p.y);
