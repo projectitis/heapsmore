@@ -428,6 +428,25 @@ class Canvas extends Drawable{
 	}
 
 	/**
+	 * Apply mask to render context
+	 * @param ctx 	The render context
+	 * @param rect 	The rect
+	 */
+	function mask( ctx : RenderContext, rect : Rect ) {
+		ctx.flush();
+		ctx.pushRenderZone( rect.x, rect.y, rect.width, rect.height );
+	}
+
+	/**
+	 * Remove the mask
+	 * @param ctx The render context
+	 */
+	public static function unmask( ctx : RenderContext ) {
+		ctx.flush();
+		ctx.popRenderZone();
+	}
+
+	/**
 	 * Sub-classes should override this to draw the UI element. Any size calculations
 	 * etc should be done in sync, and not as part of draw.
 	 * @param ctx 	The render context
@@ -452,6 +471,12 @@ class Canvas extends Drawable{
 	/**
 	 * Override to perform any final draw operations
 	 */
-	 function draw_post( ctx:RenderContext ){}
+	function draw_post( ctx:RenderContext ){}
+
+	override function drawRec( ctx : h2d.RenderContext ) @:privateAccess {
+		mask( ctx, parentRect );
+		super.drawRec(ctx);
+		unmask(ctx);
+	}
 
 }
