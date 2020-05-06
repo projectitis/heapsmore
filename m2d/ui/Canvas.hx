@@ -3,7 +3,7 @@ package m2d.ui;
 import h2d.RenderContext;
 import h2d.Drawable;
 import h2d.Object;
-import m2d.Rect;
+import h2d.col.Bounds;
 import m2d.ui.Background;
 import m2d.ui.Border;
 import m2d.ui.Dimension;
@@ -97,7 +97,7 @@ class Canvas extends Drawable{
 	/**
 	 * The total area covered by this element (excluding margins)
 	 */
-	public var rect(get,never) : Rect;
+	public var bounds(get,never) : Bounds;
 
 	/**
 	 * The size of each margin
@@ -114,13 +114,13 @@ class Canvas extends Drawable{
 	var verticalSpacing(get,never) : Float;		// Top and bottom padding + border + margin
 	var horizontalSpacing(get,never) : Float;	// Left and right 		"
 
-	var parentRect : Rect = new Rect();		// Total available area to all siblings
-	var elementRect : Rect = new Rect();	// Total available area to this element
-	var marginRect : Rect = new Rect();		// Margin + border + padding + content
+	var parentBounds : Bounds = new Bounds();		// Total available area to all siblings
+	var elementBounds : Bounds = new Bounds();		// Total available area to this element
+	var marginBounds : Bounds = new Bounds();		// Margin + border + padding + content
 	var marginSides : Sides = new Sides();
-	var borderRect : Rect = new Rect();		// Border + padding + content
-	var paddingRect : Rect = new Rect();	// Padding + content
-	var contentRect : Rect = new Rect();	// Content
+	var borderBounds : Bounds = new Bounds();		// Border + padding + content
+	var paddingBounds : Bounds = new Bounds();		// Padding + content
+	var contentBounds : Bounds = new Bounds();		// Content
 	var needResync : Bool = false;
 	var needRedraw : Bool = false;
 
@@ -145,8 +145,8 @@ class Canvas extends Drawable{
 		padding.onChange = invalidate;
 	}
 
-	function get_rect() : Rect{
-		return marginRect;
+	function get_bounds() : Bounds{
+		return marginBounds;
 	}
 
 	function set_position( v : CanvasPosition ) : CanvasPosition{
@@ -160,22 +160,22 @@ class Canvas extends Drawable{
 	}
 
 	function get_topSpacing(){
-		return contentRect.y - marginRect.y;
+		return contentBounds.y - marginBounds.y;
 	}
 	function get_bottomSpacing(){
-		return marginRect.y2 - contentRect.y2;
+		return marginBounds.yMax - contentBounds.yMax;
 	}
 	function get_leftSpacing(){
-		return contentRect.x - marginRect.x;
+		return contentBounds.x - marginBounds.x;
 	}
 	function get_rightSpacing(){
-		return marginRect.x2 - contentRect.x2;
+		return marginBounds.xMax - contentBounds.xMax;
 	}
 	function get_verticalSpacing(){
-		return marginRect.height - contentRect.height;
+		return marginBounds.height - contentBounds.height;
 	}
 	function get_horizontalSpacing(){
-		return marginRect.width - contentRect.width;
+		return marginBounds.width - contentBounds.width;
 	}
 
 	/**
@@ -186,13 +186,12 @@ class Canvas extends Drawable{
 	}
 
 	/**
-	 * Called by the parent to (re)position this canvas within the supplied rect. 
-	 * @param sibling	The previous sibling (for relative positioning)
-	 * @param rect 		The area available within the parent
+	 * Called by the parent to (re)position this canvas within the supplied bounds. 
+	 * @param bounds 		The area available within the parent
 	 */
-	public function update( r : Rect ){
-		this.parentRect.from(r);
-		elementRect.from(r);
+	public function update( bounds : Bounds ){
+		this.parentBounds.load(bounds);
+		elementBounds.load(bounds);
 
 		invalidate();
 	}
@@ -262,18 +261,18 @@ class Canvas extends Drawable{
 			if (sibling!=null){
 				// Move element down below the sibling
 				// XXX: Different layouts. At the moment only vertical stacking
-				var dy : Float = (sibling.y + sibling.rect.height) - this.parentRect.y;
+				var dy : Float = (sibling.y + sibling.bounds.height) - this.parentBounds.y;
 				if (dy>0){
-					elementRect.y += dy;
-					elementRect.height = Math.max(0,elementRect.height - dy);
+					elementBounds.y += dy;
+					elementBounds.height = Math.max(0,elementBounds.height - dy);
 				}
 				// Adjust for margin collapse
 				if (this.margin.collapse || sibling.margin.collapse){
 					// Get this top margin and sibling bottom margin
-					var tm : Float = margin.top.get(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
+					var tm : Float = margin.top.get(parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
 					var bm : Float = sibling.margins.bottom;
-					elementRect.y -= Math.min(tm,bm);
-					elementRect.height += Math.min(tm,bm);
+					elementBounds.y -= Math.min(tm,bm);
+					elementBounds.height += Math.min(tm,bm);
 				}
 			}
 		}
@@ -286,100 +285,100 @@ class Canvas extends Drawable{
 	 */
 	function sync_position( ctx:RenderContext ){
 		// Precalcuate dimensions
-		var l : Float = left.get(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		var t : Float = top.get(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		var b : Float = bottom.get(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		var r : Float = right.get(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		var w : Float = width.get(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		var h : Float = height.get(parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
+		var l : Float = left.get(parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		var t : Float = top.get(parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		var b : Float = bottom.get(parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		var r : Float = right.get(parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		var w : Float = width.get(parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		var h : Float = height.get(parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
 
 		// Left is set...
 		if (!left.undefined){
 			// Set left
-			marginRect.x = elementRect.x + l;
+			marginBounds.x = elementBounds.x + l;
 			// Both left and right are set. Ignore width
-			if (!right.undefined) marginRect.width = elementRect.width - l - r;
+			if (!right.undefined) marginBounds.width = elementBounds.width - l - r;
 			// Left and width are set. Use width (but limit to parent area)
-			else if (!width.undefined && !width.auto) marginRect.width = Math.max(0,Math.min(w,elementRect.width - l));
+			else if (!width.undefined && !width.auto) marginBounds.width = Math.max(0,Math.min(w,elementBounds.width - l));
 			// Otherwise fill from left to edge (100%)
-			else marginRect.width = elementRect.width - l;
+			else marginBounds.width = elementBounds.width - l;
 		}
 		// Right is set...
 		else if (!right.undefined){
 			// Right and width are set. Use width (but limit to parent area)
-			if (!width.undefined && !width.auto) marginRect.width = Math.max(0,Math.min(w,elementRect.width - r));
+			if (!width.undefined && !width.auto) marginBounds.width = Math.max(0,Math.min(w,elementBounds.width - r));
 			// Otherwise fill from right to edge (100%)
-			else marginRect.width = elementRect.width - r;
+			else marginBounds.width = elementBounds.width - r;
 			// Set left
-			marginRect.x = elementRect.x2 - r - marginRect.width;
+			marginBounds.x = elementBounds.xMax - r - marginBounds.width;
 		}
 		// Neither left or right, but width is set..
 		else if (!width.undefined && !width.auto){
 			// Set left
-			marginRect.x = elementRect.x;
+			marginBounds.x = elementBounds.x;
 			// Use width (but limit to parent area)
-			marginRect.width = Math.min(w,elementRect.width);
+			marginBounds.width = Math.min(w,elementBounds.width);
 		}
 		// Nothing set...
 		else{
 			// Set left
-			marginRect.x = elementRect.x;
+			marginBounds.x = elementBounds.x;
 			// Set full width (100%)
-			marginRect.width = elementRect.width;
+			marginBounds.width = elementBounds.width;
 		}
 
 		// Top is set...
 		if (!top.undefined){
 			// See top
-			marginRect.y = elementRect.y + t;
+			marginBounds.y = elementBounds.y + t;
 			// Both top and bottom are set. Ignore height
-			if (!bottom.undefined) marginRect.height = elementRect.height - t - b;
+			if (!bottom.undefined) marginBounds.height = elementBounds.height - t - b;
 			// Top and height are set. Use height (but limit to parent area)
-			else if (!height.undefined && !height.auto) marginRect.height = Math.max(0,Math.min(h,elementRect.height - t));
+			else if (!height.undefined && !height.auto) marginBounds.height = Math.max(0,Math.min(h,elementBounds.height - t));
 			// Otherwise fill from top to edge (100%)
-			else marginRect.height = elementRect.height - t;
+			else marginBounds.height = elementBounds.height - t;
 		}
 		// Bottom is set...
 		else if (!bottom.undefined){
 			// Top and height are set. Use height (but limit to parent area)
-			if (!height.undefined && !height.auto) marginRect.height = Math.max(0,Math.min(h,elementRect.height - b));
+			if (!height.undefined && !height.auto) marginBounds.height = Math.max(0,Math.min(h,elementBounds.height - b));
 			// Otherwise fill from bottom to edge (100%)
-			else marginRect.height = elementRect.height - b;
+			else marginBounds.height = elementBounds.height - b;
 			// Set top
-			marginRect.y = elementRect.y2 - b - marginRect.height;
+			marginBounds.y = elementBounds.yMax - b - marginBounds.height;
 		}
 		// Neither top or bottom, but height is set..
 		else if (!height.undefined && !height.auto){
 			// Set top
-			marginRect.y = elementRect.y;
+			marginBounds.y = elementBounds.y;
 			// Use height (but limit to parent area)
-			marginRect.height = Math.min(h,elementRect.height);
+			marginBounds.height = Math.min(h,elementBounds.height);
 		}
 		// Nothing set...
 		else{
 			// Set top
-			marginRect.y = elementRect.y;
+			marginBounds.y = elementBounds.y;
 			// Set full width (100%)
-			marginRect.height = elementRect.height;
+			marginBounds.height = elementBounds.height;
 		}
 
 		// Position this element
-		this.x = marginRect.x;
-		this.y = marginRect.y;
-		marginRect.x = 0;
-		marginRect.y = 0;
+		this.x = marginBounds.x;
+		this.y = marginBounds.y;
+		marginBounds.x = 0;
+		marginBounds.y = 0;
 
 		// Update areas
-		borderRect.from( marginRect );
-		margin.shrinkRect( borderRect, parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		paddingRect.from( borderRect );
-		border.shrinkRect( paddingRect, parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		contentRect.from( paddingRect );
-		padding.shrinkRect( contentRect, parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		marginSides.top = borderRect.y - marginRect.y;
-		marginSides.right = marginRect.x2 - borderRect.x2;
-		marginSides.left = borderRect.x - marginRect.x;
-		marginSides.bottom = marginRect.y2 - borderRect.y2;
+		borderBounds.load( marginBounds );
+		margin.shrinkBounds( borderBounds, parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		paddingBounds.load( borderBounds );
+		border.shrinkBounds( paddingBounds, parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		contentBounds.load( paddingBounds );
+		padding.shrinkBounds( contentBounds, parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		marginSides.top = borderBounds.y - marginBounds.y;
+		marginSides.right = marginBounds.xMax - borderBounds.xMax;
+		marginSides.left = borderBounds.x - marginBounds.x;
+		marginSides.bottom = marginBounds.yMax - borderBounds.yMax;
 	}
 
 	/**
@@ -393,38 +392,57 @@ class Canvas extends Drawable{
 		for (child in children){
 			if (Std.is(child,Canvas)){
 				c = cast(child,Canvas);
-				c.update( contentRect );
+				c.update( contentBounds );
 				c.sync( ctx );
-				mx = Math.max(mx,c.rect.x2);
-				my = Math.max(my,c.rect.y2);
+				mx = Math.max(mx,c.bounds.xMax);
+				my = Math.max(my,c.bounds.yMax);
 			}
 		}
-		if (height.auto) contentRect.height = my;
-		if (width.auto) contentRect.width = mx;
+		if (height.auto) contentBounds.height = my;
+		if (width.auto) contentBounds.width = mx;
 	}
 
 	/**
-	 * The content rect may have changed, so do any final repositioning based on that.
+	 * The content bounds may have changed, so do any final repositioning based on that.
 	 * @param ctx 
 	 */
 	function sync_reposition( ctx:RenderContext ){
 		// Update areas based on content
-		paddingRect.from( contentRect );
-		padding.growRect( paddingRect, parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		borderRect.from( paddingRect );
-		border.growRect( borderRect, parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		marginRect.from( borderRect );
-		margin.growRect( marginRect, parentRect.width,parentRect.height,ctx.scene.width,ctx.scene.height);
-		marginSides.top = borderRect.y - marginRect.y;
-		marginSides.right = marginRect.x2 - borderRect.x2;
-		marginSides.left = borderRect.x - marginRect.x;
-		marginSides.bottom = marginRect.y2 - borderRect.y2;
+		paddingBounds.load( contentBounds );
+		padding.growBounds( paddingBounds, parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		borderBounds.load( paddingBounds );
+		border.growBounds( borderBounds, parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		marginBounds.load( borderBounds );
+		margin.growBounds( marginBounds, parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		marginSides.top = borderBounds.y - marginBounds.y;
+		marginSides.right = marginBounds.xMax - borderBounds.xMax;
+		marginSides.left = borderBounds.x - marginBounds.x;
+		marginSides.bottom = marginBounds.yMax - borderBounds.yMax;
 
 		// Update the background
-		background.update( paddingRect );
+		background.update( paddingBounds );
 
 		// Update the border
-		border.update( borderRect );
+		border.update( borderBounds );
+	}
+
+	/**
+	 * Apply mask to render context
+	 * @param ctx 		The render context
+	 * @param bounds 	The bounds
+	 */
+	function mask( ctx : RenderContext, bounds : Bounds ) {
+		ctx.flush();
+		ctx.pushRenderZone( bounds.x, bounds.y, bounds.width, bounds.height );
+	}
+
+	/**
+	 * Remove the mask
+	 * @param ctx The render context
+	 */
+	public static function unmask( ctx : RenderContext ) {
+		ctx.flush();
+		ctx.popRenderZone();
 	}
 
 	/**
@@ -452,6 +470,12 @@ class Canvas extends Drawable{
 	/**
 	 * Override to perform any final draw operations
 	 */
-	 function draw_post( ctx:RenderContext ){}
+	function draw_post( ctx:RenderContext ){}
+
+	override function drawRec( ctx : h2d.RenderContext ) @:privateAccess {
+		mask( ctx, parentBounds );
+		super.drawRec(ctx);
+		unmask(ctx);
+	}
 
 }

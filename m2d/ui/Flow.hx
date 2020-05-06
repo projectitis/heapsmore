@@ -2,6 +2,7 @@ package m2d.ui;
 
 import h2d.Object;
 import h2d.RenderContext;
+import h2d.col.Bounds;
 import hxd.Math;
 import m2d.ui.Dimension;
 
@@ -72,20 +73,20 @@ class Flow extends Canvas{
 
 		// Calculate column sizes etc
 		var cc : Int = columnCount;
-		var cs : Float = columnSpacing.get(elementRect.width,elementRect.height,ctx.scene.width,ctx.scene.height);
-		var rs : Float = rowSpacing.get(elementRect.width,elementRect.height,ctx.scene.width,ctx.scene.height);
-		var mw : Float = minColumnWidth.get(elementRect.width,elementRect.height,ctx.scene.width,ctx.scene.height);
+		var cs : Float = columnSpacing.get(elementBounds.width,elementBounds.height,ctx.scene.width,ctx.scene.height);
+		var rs : Float = rowSpacing.get(elementBounds.width,elementBounds.height,ctx.scene.width,ctx.scene.height);
+		var mw : Float = minColumnWidth.get(elementBounds.width,elementBounds.height,ctx.scene.width,ctx.scene.height);
 		var colWidth : Float = 0;
 		if (columnCount==0){
 			if (minColumnWidth.undefined || (mw==0)){
 				cc = items.length;
 			}
 			else{
-				var w : Float = contentRect.width - cs;
+				var w : Float = contentBounds.width - cs;
 				cc = Math.floor( w / mw);
 			}
 		}
-		colWidth = (contentRect.width - cs*(cc-1)) / cc;
+		colWidth = (contentBounds.width - cs*(cc-1)) / cc;
 
 		// Update the column references
 		var columns : Array<Float> = new Array();
@@ -95,7 +96,7 @@ class Flow extends Canvas{
 		// Position the items
 		var c : Int = 0;
 		var x : Float = 0;
-		var r : Rect = new Rect();
+		var r : Bounds = new Bounds();
 		var mx : Float = 0;
 		var my : Float = 0;
 		var ch : Float = 0;
@@ -120,7 +121,7 @@ class Flow extends Canvas{
 					item.width.unsetMax();
 					item.width.set('100pw');
 					if (rowSizing!=None) item.height.set('auto');
-					ch = contentRect.height - columns[c];
+					ch = contentBounds.height - columns[c];
 				}
 				// Reflowing
 				else{
@@ -134,18 +135,18 @@ class Flow extends Canvas{
 				// sync directly on the child. When child.sync is called again shortly it will be
 				// ignored because sync has already occured (needSync flag will be false) but we
 				// need sync now to give child opporunity to adjust height.
-				r.set( contentRect.x + x, contentRect.y + columns[c], colWidth, ch );
+				r.set( contentBounds.x + x, contentBounds.y + columns[c], colWidth, ch );
 				item.update( r );
 				item.sync( ctx );
-				mx = Math.max(mx, x + item.rect.width );
-				my = Math.max(my, columns[c] + item.rect.height); 
+				mx = Math.max(mx, x + item.bounds.width );
+				my = Math.max(my, columns[c] + item.bounds.height); 
 				if (reflow==0){
-					mh = Math.max(mh, item.rect.height);
+					mh = Math.max(mh, item.bounds.height);
 					trace('  mh: $mh');
 				}
 
 				// Update column height
-				columns[c] += item.rect.height + rs;
+				columns[c] += item.bounds.height + rs;
 
 				// Move to next col
 				x += (colWidth + cs);
@@ -171,8 +172,8 @@ class Flow extends Canvas{
 			// If we don't need to re-flow, we break here, otherwise we go around for a reflow
 			if (rowSizing==None) break;
 		} // reflow
-		if (height.auto) contentRect.height = my;
-		if (width.auto) contentRect.width = mx;
+		if (height.auto) contentBounds.height = my;
+		if (width.auto) contentBounds.width = mx;
 	}
 
 }

@@ -3,6 +3,7 @@ package m2d.ui;
 import h2d.RenderContext;
 import h2d.Graphics;
 import h2d.Object;
+import h2d.col.Bounds;
 import m2d.ui.BorderDimension;
 
 /**
@@ -35,7 +36,7 @@ class Border extends Graphics{
 	 */
 	public var onChange : Void -> Void = null;
 
-	var rect : Rect = new Rect(); // Area covered by border (to outside)
+	var bounds : Bounds = new Bounds(); // Area covered by border (to outside)
 	var needRedraw : Bool = true; // Redraw flag
 
 	/**
@@ -138,33 +139,33 @@ class Border extends Graphics{
 	}
 
 	/**
-	 * Add this BorderRect to the rect to grow it
-	 * @param rect 	The rect to apply to
+	 * Add this BorderRect to the bounds to grow it
+	 * @param bounds 	The bounds to apply to
 	 */
-	public function growRect( rect : Rect, pw : Float, ph : Float, vw : Float, vh : Float ){
+	public function growBounds( bounds : Bounds, pw : Float, ph : Float, vw : Float, vh : Float ){
 		var l : Float = left.get(pw,ph,vw,vh);
 		var r : Float = right.get(pw,ph,vw,vh);
 		var t : Float = top.get(pw,ph,vw,vh);
 		var b : Float = bottom.get(pw,ph,vw,vh);
-		rect.x -= l;
-		rect.width += l + r;
-		rect.y -= t;
-		rect.height += t + b;
+		bounds.x -= l;
+		bounds.width += l + r;
+		bounds.y -= t;
+		bounds.height += t + b;
 	}
 
 	/**
-	 * Subtract this BorderRect from the rect to shrink it
-	 * @param rect 	The rect to apply to
+	 * Subtract this BorderRect from the bounds to shrink it
+	 * @param bounds 	The bounds to apply to
 	 */
-	public function shrinkRect( rect : Rect, pw : Float, ph : Float, vw : Float, vh : Float ){
+	public function shrinkBounds( bounds : Bounds, pw : Float, ph : Float, vw : Float, vh : Float ){
 		var l : Float = left.get(pw,ph,vw,vh);
 		var r : Float = right.get(pw,ph,vw,vh);
 		var t : Float = top.get(pw,ph,vw,vh);
 		var b : Float = bottom.get(pw,ph,vw,vh);
-		rect.x += l;
-		rect.width -= l + r;
-		rect.y += t;
-		rect.height -= t + b;
+		bounds.x += l;
+		bounds.width -= l + r;
+		bounds.y += t;
+		bounds.height -= t + b;
 	}
 
 	/**
@@ -176,12 +177,12 @@ class Border extends Graphics{
 
 	/**
 	 * Called by the parent to reposition or resize the background
-	 * @param rect 		The area to position within
+	 * @param bounds 		The area to position within
 	 */
-	public function update( r : Rect ){
-		this.rect.from(r);
-		this.x = this.rect.x;
-		this.y = this.rect.y;
+	public function update( bounds : Bounds ){
+		this.bounds.load( bounds );
+		this.x = this.bounds.x;
+		this.y = this.bounds.y;
 
 		invalidate();
 	}
@@ -197,49 +198,49 @@ class Border extends Graphics{
 
 		this.clear();
 		if (!visible) return;
-		if (rect.empty()) return;
+		if (bounds.isEmpty()) return;
 
-		var l : Float = left.get(rect.width,rect.height,ctx.scene.width,ctx.scene.height);
-		var t : Float = top.get(rect.width,rect.height,ctx.scene.width,ctx.scene.height);
-		var b : Float = bottom.get(rect.width,rect.height,ctx.scene.width,ctx.scene.height);
-		var r : Float = right.get(rect.width,rect.height,ctx.scene.width,ctx.scene.height);
+		var l : Float = left.get(bounds.width,bounds.height,ctx.scene.width,ctx.scene.height);
+		var t : Float = top.get(bounds.width,bounds.height,ctx.scene.width,ctx.scene.height);
+		var b : Float = bottom.get(bounds.width,bounds.height,ctx.scene.width,ctx.scene.height);
+		var r : Float = right.get(bounds.width,bounds.height,ctx.scene.width,ctx.scene.height);
 
 		// Top border
 		if (!top.undefined){
 			this.moveTo(0,0);
 			this.beginFill( top.color, top.alpha );
-			this.lineTo(rect.width,0);
-			this.lineTo(rect.width-r,t);
+			this.lineTo(bounds.width,0);
+			this.lineTo(bounds.width-r,t);
 			this.lineTo(l,t);
 			this.lineTo(0,0);
 			this.endFill();
 		}
 		// Right border
 		if (!right.undefined){
-			this.moveTo(rect.width,0);
+			this.moveTo(bounds.width,0);
 			this.beginFill( right.color, right.alpha );
-			this.lineTo(rect.width,rect.height);
-			this.lineTo(rect.width-r,rect.height-b);
-			this.lineTo(rect.width-r,t);
-			this.lineTo(rect.width,0);
+			this.lineTo(bounds.width,bounds.height);
+			this.lineTo(bounds.width-r,bounds.height-b);
+			this.lineTo(bounds.width-r,t);
+			this.lineTo(bounds.width,0);
 			this.endFill();
 		}
 		// Bottom border
 		if (!bottom.undefined){
-			this.moveTo(0,rect.height);
+			this.moveTo(0,bounds.height);
 			this.beginFill( bottom.color, bottom.alpha );
-			this.lineTo(rect.width,rect.height);
-			this.lineTo(rect.width-r,rect.height-b);
-			this.lineTo(l,rect.height-b);
-			this.lineTo(0,rect.height);
+			this.lineTo(bounds.width,bounds.height);
+			this.lineTo(bounds.width-r,bounds.height-b);
+			this.lineTo(l,bounds.height-b);
+			this.lineTo(0,bounds.height);
 			this.endFill();
 		}
 		// Left border
 		if (!left.undefined){
 			this.moveTo(0,0);
 			this.beginFill( left.color, left.alpha );
-			this.lineTo(0,rect.height);
-			this.lineTo(l,rect.height-b);
+			this.lineTo(0,bounds.height);
+			this.lineTo(l,bounds.height-b);
 			this.lineTo(l,t);
 			this.lineTo(0,0);
 			this.endFill();

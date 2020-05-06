@@ -4,7 +4,7 @@ import h2d.RenderContext;
 import h2d.Graphics;
 import h2d.Object;
 import h2d.Tile;
-import m2d.Rect;
+import h2d.col.Bounds;
 
 /**
  * Background size options
@@ -100,7 +100,7 @@ class Background extends Graphics{
 	 */
 	public var imageRepeat(default,set) : Bool = false;
 
-	var rect : Rect = new Rect(); // Area covered by background
+	var bounds : Bounds = new Bounds(); // Area covered by background
 	var needRedraw : Bool = true; // Redraw flag
 
 	/**
@@ -252,10 +252,10 @@ class Background extends Graphics{
 	 * Called by the parent to reposition or resize the background
 	 * @param rect 		The area to position within
 	 */
-	public function update( r : Rect ){
-		this.rect.from(r);
-		this.x = this.rect.x;
-		this.y = this.rect.y;
+	public function update( r : Bounds ){
+		this.bounds.load(r);
+		this.x = this.bounds.x;
+		this.y = this.bounds.y;
 
 		invalidate();
 	}
@@ -271,7 +271,7 @@ class Background extends Graphics{
 
 		this.clear();
 		if (!visible) return;
-		if (rect.empty()) return;
+		if (bounds.isEmpty()) return;
 
 		// XXX: Make radius editable
 		// XXX: Change to top-radius, left-radius etc
@@ -281,8 +281,8 @@ class Background extends Graphics{
 			var a : Float = ((fillColor>>24) & 255)/255;
 			if (a==0) a = 1;
 			this.beginFill( fillColor, a );
-			if (radius>0) this.drawRoundedRect(0,0,rect.width,rect.height,radius);
-			else this.drawRect(0,0,rect.width,rect.height);
+			if (radius>0) this.drawRoundedRect(0,0,bounds.width,bounds.height,radius);
+			else this.drawRect(0,0,bounds.width,bounds.height);
 			this.endFill();
 		}
 		if (image!=null){
@@ -294,41 +294,41 @@ class Background extends Graphics{
 			var y : Float;
 			switch (imageSize){
 				case Fit: {
-					sx = sy = Math.min(rect.width/image.width, rect.height/image.height);
+					sx = sy = Math.min(bounds.width/image.width, bounds.height/image.height);
 					w = image.width*sx;
 					h = image.height*sy;
-					x = calculateImagePosH( w, rect.width );
-					y = calculateImagePosV( h, rect.height );
+					x = calculateImagePosH( w, bounds.width );
+					y = calculateImagePosV( h, bounds.height );
 				}
 				case Fill: {
-					sx = sy = Math.max(rect.width/image.width, rect.height/image.height);
+					sx = sy = Math.max(bounds.width/image.width, bounds.height/image.height);
 					w  = image.width*sx;
 					h  = image.height*sy;
-					x  = calculateImagePosH( w, rect.width );
-					y  = calculateImagePosV( h, rect.height );
+					x  = calculateImagePosH( w, bounds.width );
+					y  = calculateImagePosV( h, bounds.height );
 				}
 				case Normal: {
 					w = calculateImageWidth();
 					h = calculateImageHeight();
 					sx = w/image.width;
 					sy = h/image.height;
-					x = calculateImagePosH( w, rect.width );
-					y = calculateImagePosV( h, rect.height );
+					x = calculateImagePosH( w, bounds.width );
+					y = calculateImagePosV( h, bounds.height );
 				}
 				case Percent: {
-					w = calculateImageWidthPC( rect.width, rect.height );
-					h = calculateImageHeightPC( rect.width, rect.height );
+					w = calculateImageWidthPC( bounds.width, bounds.height );
+					h = calculateImageHeightPC( bounds.width, bounds.height );
 					sx  = w/image.width;
 					sy  = h/image.height;
-					x = calculateImagePosH( w, rect.width );
-					y = calculateImagePosV( h, rect.height );
+					x = calculateImagePosH( w, bounds.width );
+					y = calculateImagePosV( h, bounds.height );
 				}
 			}
 			this.beginTileFill(x,y,sx,sy,image);
 			if (imageRepeat){
 				this.tileWrap = true;
-				if (radius>0) this.drawRoundedRect(0,0,rect.width,rect.height,radius);
-				else this.drawRect(0,0,rect.width,rect.height);
+				if (radius>0) this.drawRoundedRect(0,0,bounds.width,bounds.height,radius);
+				else this.drawRect(0,0,bounds.width,bounds.height);
 			}
 			else{
 				if (x<0){
@@ -339,11 +339,11 @@ class Background extends Graphics{
 					h += y;
 					y = 0;
 				}
-				if ((x+w)>rect.width){
-					w = rect.width-x;
+				if ((x+w)>bounds.width){
+					w = bounds.width-x;
 				}
-				if ((y+h)>rect.height){
-					h = rect.height-y;
+				if ((y+h)>bounds.height){
+					h = bounds.height-y;
 				}
 				this.tileWrap = false;
 				if (radius>0) this.drawRoundedRect(x,y,w,h,radius);
