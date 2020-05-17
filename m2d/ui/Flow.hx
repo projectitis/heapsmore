@@ -9,10 +9,11 @@ import m2d.ui.Dimension;
 /**
  * How the flow manages the height of rows
  */
-enum FlowRowSizing {
-	None;		// No effort to maintain. Each element can be a different height
-	Row;		// All items in the same row are set to the height of the tallest in that row
-	All;		// All items in the whole flow are set to the height of the tallest item in the flow
+enum FlowDisplayStyle {
+	Normal;		// No effort to maintain row heights. Each element can be a different height
+	//Compact;	// Similar to Normal, but items can be rearranged to make best use of the space. XXX: Coming soon!
+	Table;		// All items in the same row are set to the height of the tallest in that row, like a table
+	Grid;		// All items in the whole flow are set to the height of the tallest item in the flow
 }
 
 /**
@@ -42,9 +43,9 @@ class Flow extends Canvas{
 	public var columnCount(default,set) : Int = 0;
 
 	/**
-	 * How the size of the rows are handled. None = all elements at their own heights. None, Row, All.
+	 * How the items and rows of the style are rendered.
 	 */
-	public var rowSizing : FlowRowSizing = None;
+	public var displayStyle(default,set) : FlowDisplayStyle = Normal;
 
 	public function new( ?parent : Object ){
 		super( parent );
@@ -55,6 +56,12 @@ class Flow extends Canvas{
 
 	function set_columnCount( v : Int ) : Int{
 		columnCount = Math.imax(0,v);
+		invalidate();
+		return v;
+	}
+
+	function set_displayStyle( v : FlowDisplayStyle ) : FlowDisplayStyle{
+		displayStyle = v;
 		invalidate();
 		return v;
 	}
@@ -120,15 +127,14 @@ class Flow extends Canvas{
 					item.width.unsetMin();
 					item.width.unsetMax();
 					item.width.set('100pw');
-					if (rowSizing!=None) item.height.set('auto');
+					if (displayStyle!=Normal) item.height.set('auto');
 					ch = contentBounds.height - columns[c];
 				}
 				// Reflowing
 				else{
-					if (rowSizing==Row) ch = rows[0];
+					if (displayStyle==Table) ch = rows[0];
 					else ch = mh;
 					item.height.set(ch);
-					if (c==0) trace('Reflow row height to ${ch}');
 				}
 
 				// Not calling parent.sync_children. Doing it here instead. We are also calling
@@ -140,10 +146,7 @@ class Flow extends Canvas{
 				item.sync( ctx );
 				mx = Math.max(mx, x + item.bounds.width );
 				my = Math.max(my, columns[c] + item.bounds.height); 
-				if (reflow==0){
-					mh = Math.max(mh, item.bounds.height);
-					trace('  mh: $mh');
-				}
+				if (reflow==0) mh = Math.max(mh, item.bounds.height);
 
 				// Update column height
 				columns[c] += item.bounds.height + rs;
@@ -154,26 +157,20 @@ class Flow extends Canvas{
 				if (c==cc){
 					x = 0;
 					c = 0;
-					if (rowSizing==Row){
-						if (reflow==0) {
-							rows.push( mh );
-							trace('SET ROW ${rows.length} HEIGHT: $mh');
-						}
+					if (displayStyle==Table){
+						if (reflow==0) rows.push( mh );
 						else rows.shift();
 						mh = 0;
 					}
 				}
 			}
-			if ((reflow==0) && (c>0)){
-				rows.push( mh );
-				trace('SET ROW ${rows.length} HEIGHT: $mh (final)');
-			}
+			if ((reflow==0) && (c>0)) rows.push( mh );
 
 			// If we don't need to re-flow, we break here, otherwise we go around for a reflow
-			if (rowSizing==None) break;
+			if (displayStyle==Normal) break;
 		} // reflow
-		if (height.auto) contentBounds.height = my;
-		if (width.auto) contentBounds.width = mx;
+		contentBounds.height = my;
+		contentBounds.width = mx;
 	}
 
 }

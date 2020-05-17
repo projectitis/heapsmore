@@ -17,6 +17,7 @@ class UIApp extends App{
 		super.init();
 
 		canvas = new Canvas( s2d );
+		canvas.name = 'canvas';
 		viewBounds.set(0,0,s2d.width,s2d.height);
 		canvas.update( viewBounds );
 	}

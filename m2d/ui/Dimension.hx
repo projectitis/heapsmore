@@ -165,6 +165,22 @@ class Dimension{
 	 * @param vh 	The viewport height
 	 */
 	public function get( pw : Float, ph : Float, vw : Float, vh : Float ) : Float{
+		var v : Float = getWithoutBounds( pw, ph, vw, vh );
+		if (min!=null) v = Math.max(min.get(pw,ph,vw,vh),v);
+		if (max!=null) v = Math.min(max.get(pw,ph,vw,vh),v);
+		return v;
+	}
+
+	/**
+	 * Calculate and return teh value without checking against min and max. Not common
+	 * to use this - usually `get` is used.
+	 * @param pw 	The parent width
+	 * @param ph 	The parent height
+	 * @param vw 	The viewport width
+	 * @param vh 	The viewport height
+	 * @return Float	The value
+	 */
+	public function getWithoutBounds( pw : Float, ph : Float, vw : Float, vh : Float ) : Float{
 		var v : Float;
 		switch (unit){
 			case Pixels: v = this.value;
@@ -177,9 +193,7 @@ class Dimension{
 			case ViewportMin: v = Math.min(vw,vh) * value * 0.01;
 			case ViewportMax: v = Math.max(vw,vh) * value * 0.01;
 		}
-		if (min!=null) v = Math.max(min.get(pw,ph,vw,vh),v);
-		if (max!=null) v = Math.min(max.get(pw,ph,vw,vh),v);
-		return v;
+		return v;		
 	}
 
 	/**

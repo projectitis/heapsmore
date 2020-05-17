@@ -1,10 +1,10 @@
 package m2d.ui;
 
 import h2d.RenderContext;
-import h2d.Graphics;
 import h2d.Object;
 import h2d.Tile;
 import h2d.col.Bounds;
+import m2d.ui.Graphics;
 
 /**
  * Background size options

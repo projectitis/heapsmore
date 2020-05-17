@@ -4,10 +4,12 @@ import h2d.RenderContext;
 import h2d.Drawable;
 import h2d.Object;
 import h2d.col.Bounds;
+import hxd.Math;
 import m2d.ui.Background;
 import m2d.ui.Border;
 import m2d.ui.Dimension;
 import m2d.ui.MarginRect;
+import m2d.ui.Position; 
 import m2d.ui.SideRect;
 import m2d.ui.Sides;
 
@@ -105,6 +107,11 @@ class Canvas extends Drawable{
 	public var margins(get,never) : Sides;
 
 	/**
+	 * Object to control the scrolling of the canvas
+	 */
+	public var scroll(default,null) : Position = new Position();
+
+	/**
 	 * Convenience properties for subclasses
 	 */
 	var topSpacing(get,never) : Float;			// Top padding + border + margin
@@ -117,10 +124,15 @@ class Canvas extends Drawable{
 	var parentBounds : Bounds = new Bounds();		// Total available area to all siblings
 	var elementBounds : Bounds = new Bounds();		// Total available area to this element
 	var marginBounds : Bounds = new Bounds();		// Margin + border + padding + content
-	var marginSides : Sides = new Sides();
 	var borderBounds : Bounds = new Bounds();		// Border + padding + content
 	var paddingBounds : Bounds = new Bounds();		// Padding + content
-	var contentBounds : Bounds = new Bounds();		// Content
+	var contentBounds : Bounds = new Bounds();		// Content. may be different than scrollBounds
+	var scrollBounds : Bounds = new Bounds();		// Scrollable area that contains contentBounds
+	var marginSides : Sides = new Sides();
+
+	var scrollbarX : Scrollbar;
+	var scrollbarY : Scrollbar;
+
 	var needResync : Bool = false;
 	var needRedraw : Bool = false;
 
@@ -134,6 +146,13 @@ class Canvas extends Drawable{
 		background = new Background( this );
 		border = new Border( this );
 		border.onChange = invalidate;
+		scrollbarX = new Scrollbar( this, this );
+		scrollbarX.type = Horizontal;
+		scrollbarX.onChange = invalidate;
+		scrollbarY = new Scrollbar( this, this );
+		scrollbarY.type = Vertical;
+		scrollbarY.onChange = invalidate;
+
 		top.onChange = invalidate;
 		left.onChange = invalidate;
 		bottom.onChange = invalidate;
@@ -143,6 +162,7 @@ class Canvas extends Drawable{
 		margin.onChange = invalidate;
 		border.onChange = invalidate;
 		padding.onChange = invalidate;
+		scroll.onChange = invalidate;
 	}
 
 	function get_bounds() : Bounds{
@@ -375,6 +395,7 @@ class Canvas extends Drawable{
 		border.shrinkBounds( paddingBounds, parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
 		contentBounds.load( paddingBounds );
 		padding.shrinkBounds( contentBounds, parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
+		scrollBounds.load(contentBounds);
 		marginSides.top = borderBounds.y - marginBounds.y;
 		marginSides.right = marginBounds.xMax - borderBounds.xMax;
 		marginSides.left = borderBounds.x - marginBounds.x;
@@ -407,8 +428,29 @@ class Canvas extends Drawable{
 	 * @param ctx 
 	 */
 	function sync_reposition( ctx:RenderContext ){
+		// Are we scrolling or clipping?
+		var cb = scroll.onChange;
+		scroll.onChange = null;
+		if (width.auto){
+			scrollBounds.x = contentBounds.x;
+			scrollBounds.width = contentBounds.width;
+			scroll.x.set(0);
+			scroll.x.setMax(0);
+		}
+		else{
+			scroll.x.setMax( contentBounds.xMax - scrollBounds.xMax );
+		}
+		if (height.auto){
+			scrollBounds.y = contentBounds.y;
+			scrollBounds.height = contentBounds.height;
+		}
+		else{
+			scroll.y.setMax( contentBounds.height - scrollBounds.height );
+		}
+		scroll.onChange = cb;
+
 		// Update areas based on content
-		paddingBounds.load( contentBounds );
+		paddingBounds.load( scrollBounds );
 		padding.growBounds( paddingBounds, parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
 		borderBounds.load( paddingBounds );
 		border.growBounds( borderBounds, parentBounds.width,parentBounds.height,ctx.scene.width,ctx.scene.height);
@@ -419,30 +461,113 @@ class Canvas extends Drawable{
 		marginSides.left = borderBounds.x - marginBounds.x;
 		marginSides.bottom = marginBounds.yMax - borderBounds.yMax;
 
-		// Update the background
-		background.update( paddingBounds );
-
 		// Update the border
+		border.remove();
+		addChildAt( border, 0 );
 		border.update( borderBounds );
+		border.sync( ctx );
+
+		// Update the background
+		background.remove();
+		addChildAt( background, 0 );
+		background.update( paddingBounds );
+		background.sync( ctx );
+
+		// Update the scrollbars
+		scrollbarX.remove();
+		addChild( scrollbarX );
+		scrollbarX.sync( ctx );
+
+		scrollbarY.remove();
+		addChild( scrollbarY );
+		scrollbarY.sync( ctx );
 	}
 
 	/**
-	 * Apply mask to render context
-	 * @param ctx 		The render context
-	 * @param bounds 	The bounds
+	 * Completely replace parent call so that we can add masking
 	 */
-	function mask( ctx : RenderContext, bounds : Bounds ) {
-		ctx.flush();
-		ctx.pushRenderZone( bounds.x, bounds.y, bounds.width, bounds.height );
-	}
+	override function drawRec( ctx : h2d.RenderContext ) @:privateAccess {
+		if( !visible ) return;
 
-	/**
-	 * Remove the mask
-	 * @param ctx The render context
-	 */
-	public static function unmask( ctx : RenderContext ) {
-		ctx.flush();
-		ctx.popRenderZone();
+		// fallback in case the object was added during a sync() event and we somehow didn't update it
+		if( posChanged ) {
+			// only sync anim, don't update() (prevent any event from occuring during draw())
+			// if( currentAnimation != null ) currentAnimation.sync();
+			calcAbsPos();
+			for( c in children )
+				c.posChanged = true;
+			posChanged = false;
+		}
+		if( filter != null && filter.enable ) {
+			drawFilters(ctx);
+		} else {
+			var bb : Bool;
+			var old = ctx.globalAlpha;
+			ctx.globalAlpha *= alpha;
+			if( ctx.front2back ) {
+				var nchilds = children.length;
+				var c : Object;
+
+				// Draw canvas children. Any child that extends m2d,ui.Graphics should be drawn within borderBounds (bb=true). These
+				// include the background, the border and the scrollbars. All otehrs are drawn within the scrollBounds. These are all
+				// UI element children in the DOM. 
+				bb = true;
+				mask( ctx, borderBounds );
+				for (i in 0...nchilds){
+					c = children[nchilds - 1 - i];
+					if (Std.is(c,m2d.ui.Graphics)){
+						if (!bb){
+							unmask( ctx );
+							mask( ctx, borderBounds );
+							bb = true;
+						}
+					} else {
+						if (bb){
+							unmask( ctx );
+							mask( ctx, scrollBounds );
+							bb = false;
+						}
+					}
+					c.drawRec(ctx);
+				}
+		
+				// Draw self and non-canvas children in border bound area
+				if (!bb){
+					unmask( ctx );
+					mask( ctx, borderBounds );
+					bb = true;
+				}
+				draw(ctx);
+				unmask( ctx );
+			} else {
+				// Draw self
+				bb = true;
+				mask( ctx, borderBounds );
+				draw(ctx);
+
+				// Draw canvas children. Any child that extends m2d,ui.Graphics should be drawn within borderBounds (bb=true). These
+				// include the background, the border and the scrollbars. All otehrs are drawn within the scrollBounds. These are all
+				// UI element children in the DOM.  
+				for( c in children ){
+					if (Std.is(c,m2d.ui.Graphics)){
+						if (!bb){
+							unmask( ctx );
+							mask( ctx, borderBounds );
+							bb = true;
+						}
+					} else {
+						if (bb){
+							unmask( ctx );
+							mask( ctx, scrollBounds );
+							bb = false;
+						}
+					}
+					c.drawRec(ctx);
+				}
+				unmask( ctx );
+			}
+			ctx.globalAlpha = old;
+		}
 	}
 
 	/**
@@ -451,7 +576,7 @@ class Canvas extends Drawable{
 	 * @param ctx 	The render context
 	 */
 	override function draw( ctx:RenderContext ) {
-		var nr : Bool = needRedraw; // Incase flags are changed during draw
+		var nr : Bool = needRedraw;
 		if (needRedraw){
 			needRedraw = false;
 			draw_pre( ctx );
@@ -472,10 +597,36 @@ class Canvas extends Drawable{
 	 */
 	function draw_post( ctx:RenderContext ){}
 
-	override function drawRec( ctx : h2d.RenderContext ) @:privateAccess {
-		mask( ctx, parentBounds );
-		super.drawRec(ctx);
-		unmask(ctx);
+
+	@:access(h2d.RenderContext)
+	public function mask( ctx : RenderContext, bounds : Bounds ) {
+
+		var x1 = this.absX + bounds.x;
+		var y1 = this.absY + bounds.y;
+
+		var x2 = bounds.width * this.matA + bounds.height * this.matC + x1;
+		var y2 = bounds.width * this.matB + bounds.height * this.matD + y1;
+
+		var tmp;
+		if (x1 > x2) {
+			tmp = x1;
+			x1 = x2;
+			x2 = tmp;
+		}
+
+		if (y1 > y2) {
+			tmp = y1;
+			y1 = y2;
+			y2 = tmp;
+		}
+
+		ctx.flush();
+		ctx.clipRenderZone(x1, y1, x2-x1, y2-y1);
+	}
+
+	public static function unmask( ctx : RenderContext ) {
+		ctx.flush();
+		ctx.popRenderZone();
 	}
 
 }
