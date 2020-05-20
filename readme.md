@@ -2,7 +2,9 @@
 __Heaps::more__ is an extension library for use with the [Heaps](https://heaps.io/) Game Framework, written in [Haxe](https://haxe.org/) and open-sourced under the [MIT license](https://choosealicense.com/licenses/mit/).
 
 ## Current status
-Very much a work-in-progress. Currently working on a css-style box-model UI framework. Scrollbars not yet working,
+Very much a work-in-progress. Currently working on a css-style box-model UI framework. Scrollbars not yet working.
+Have a working cable class and socket, to create patch-panel style interfaces! The cables do not use true catenary curves (probably not even close), I just played around with different formula to adjust bezier handles as the cable moves to get something that looks semi-decent.
+![Socket and Cables](/examples/img/example-socket.jpg)
 
 ## Package structure
 The package structure is similar to Heaps:
@@ -15,6 +17,13 @@ The package structure is similar to Heaps:
 * Add scroll areas (overflow:scroll) to Canvas
 
 ## Changes
+
+__2020-05-20__
+* UI: Changed sockets to use drag/drop instead of click/click
+
+__2020-05-19__
+* UI: Added `Socket` class to dock cables to
+* Examples: Added `Socket` example
 
 __2020-05-17__
 * UI: Changed to use `h2d.col.Bounds` and removed custom `Rect` class

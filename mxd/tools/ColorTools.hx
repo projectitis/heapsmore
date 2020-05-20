@@ -197,7 +197,7 @@ class ColorTools{
 	 * @return Int	The color
 	 */
 	public static inline function fastColorFromRGB( R : Int, G : Int, B : Int ) : Int{
-		return (R<<16) & (G<<8) & B;
+		return (R<<16) | (G<<8) | B;
 	}
 
 	/**
@@ -255,7 +255,51 @@ class ColorTools{
 	 * @return Int	The color
 	 */
 	public static inline function fastColorFromRGBA( R : Int, G : Int, B : Int, A : Int ) : Int{
-		return (A<<24) & (R<<16) & (G<<8) & B;
+		return (A<<24) | (R<<16) | (G<<8) | B;
+	}
+
+	/**
+	 * Tint a color with another colour by an amount. If the amount is 0, the original color is
+	 * not changed. If the amount is 1, the color is the tint color.
+	 * @param c 		The color
+	 * @param t 		The tint color
+	 * @param a 		The amount (0 <= a <= 1)
+	 * @return Int	The tinted color
+	 */
+	public static function tint( c : Int, t : Int, a : Float ) : Int {
+		a = Math.clamp(a);
+		var R : Int = Math.floor( Math.lerp( (c >> 16) & 0xff, (t >> 16) & 0xff, a ) );
+		var G : Int = Math.floor( Math.lerp( (c >> 8) & 0xff, (t >> 8) & 0xff, a ) );
+		var B : Int = Math.floor( Math.lerp( c & 0xff, t & 0xff, a ) );
+		return fastColorFromRGB( R, G, B );
+	}
+
+	/**
+	 * Darken a color toward black by an amount.
+	 * @param c 	The color
+	 * @param a 	The amount (0 <= a <= 1)
+	 * @return Int	The darkened color
+	 */
+	public static function darken( c : Int, a : Float ) : Int {
+		a = 1 - Math.clamp(a);
+		var R : Int = Math.floor( ((c >> 16) & 0xff) * a );
+		var G : Int = Math.floor( ((c >> 8) & 0xff) * a );
+		var B : Int = Math.floor( (c & 0xff) * a );
+		return fastColorFromRGB( R, G, B );
+	}
+
+	/**
+	 * Lighten a color toward white by an amount.
+	 * @param c 	The color
+	 * @param a 	The amount (0 <= a <= 1)
+	 * @return Int	The lightened color
+	 */
+	 public static function lighten( c : Int, a : Float ) : Int {
+		a = Math.clamp(a);
+		var R : Int = Math.floor( Math.lerp( (c >> 16) & 0xff, 255, a ) );
+		var G : Int = Math.floor( Math.lerp( (c >> 8) & 0xff, 255, a ) );
+		var B : Int = Math.floor( Math.lerp( c & 0xff, 255, a ) );
+		return fastColorFromRGB( R, G, B );
 	}
 
 }
