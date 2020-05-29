@@ -153,13 +153,15 @@ class ColorTools{
 	static inline var DarkSlateGray			: Int = 0x2f4f4f;
 	static inline var Black					: Int = 0x000000;
 
+
+
 	/**
 	 * Apply alpha to a 24-bit RGB Int value, which results in a 32-bit ARGB value.
 	 * Any alpha will be replaced.
 	 * @param color 	The color
 	 * @param a 		The alpha 0.0 <= a <= 1.0
 	 */
-	public static function applyAlpha( color : Int, a : Float ){
+	public static inline function opacity( color : Int, a : Float ){
 		var av : Int = Math.round( Math.clamp(a) * 255 );
 		return (color & 0xffffff) | (av<<24);
 	}
@@ -182,10 +184,10 @@ class ColorTools{
 	 * @param 	B	The blue component 0-255  
 	 * @return Int	The color
 	 */
-	public static function colorFromRGB( R : Int, G : Int, B : Int ) : Int{
+	public static inline function colorFromRGB( R : Int, G : Int, B : Int ) : Int{
 		R = Math.iclamp( R, 0, 255 );
-		G = Math.iclamp( R, 0, 255 );
-		B = Math.iclamp( R, 0, 255 );
+		G = Math.iclamp( G, 0, 255 );
+		B = Math.iclamp( B, 0, 255 );
 		return fastColorFromRGB( R, G, B );
 	}
 
@@ -209,10 +211,10 @@ class ColorTools{
 	 * @param 	A	The alpha component 0-255 
 	 * @return Int	The color
 	 */
-	public static function colorFromRGBA( R : Int, G : Int, B : Int, A : Int ) : Int{
+	public static inline function colorFromRGBA( R : Int, G : Int, B : Int, A : Int ) : Int{
 		R = Math.iclamp( R, 0, 255 );
-		G = Math.iclamp( R, 0, 255 );
-		B = Math.iclamp( R, 0, 255 );
+		G = Math.iclamp( G, 0, 255 );
+		B = Math.iclamp( B, 0, 255 );
 		A = Math.iclamp( A, 0, 255 );
 		return fastColorFromRGBA( R, G, B, A );
 	}
@@ -226,11 +228,11 @@ class ColorTools{
 	 * @param 	A	The alpha component 0.0-1.0
 	 * @return Int	The color
 	 */
-	public static function colorFromRGBa( R : Int, G : Int, B : Int, a : Float ) : Int{
+	public static inline function colorFromRGBa( R : Int, G : Int, B : Int, a : Float ) : Int{
 		var A : Int = Math.round(Math.clamp(a)*255);
 		R = Math.iclamp( R, 0, 255 );
-		G = Math.iclamp( R, 0, 255 );
-		B = Math.iclamp( R, 0, 255 );
+		G = Math.iclamp( G, 0, 255 );
+		B = Math.iclamp( B, 0, 255 );
 		return fastColorFromRGBA( R, G, B, A );
 	}
 
@@ -243,7 +245,7 @@ class ColorTools{
 	 * @return Int	The color
 	 */
 	public static inline function fastColorFromRGBa( R : Int, G : Int, B : Int, a : Float ) : Int{
-		return (Math.round(a*255)<<24) & (R<<16) & (G<<8) & B;
+		return (Math.round(a*255)<<24) | (R<<16) | (G<<8) | B;
 	}
 
 	/**
@@ -294,12 +296,48 @@ class ColorTools{
 	 * @param a 	The amount (0 <= a <= 1)
 	 * @return Int	The lightened color
 	 */
-	 public static function lighten( c : Int, a : Float ) : Int {
+	public static function lighten( c : Int, a : Float ) : Int {
 		a = Math.clamp(a);
 		var R : Int = Math.floor( Math.lerp( (c >> 16) & 0xff, 255, a ) );
 		var G : Int = Math.floor( Math.lerp( (c >> 8) & 0xff, 255, a ) );
 		var B : Int = Math.floor( Math.lerp( c & 0xff, 255, a ) );
 		return fastColorFromRGB( R, G, B );
+	}
+
+	/**
+	 * Return the alpha channel value
+	 * @param c 		The color
+	 * @return Int		The channel value
+	 */
+	public static inline function alpha( c : Int ) : Int {
+		return (c >> 24) & 0xff;
+	}
+
+	/**
+	 * Return the red channel value
+	 * @param c 		The color
+	 * @return Int		The channel value
+	 */
+	public static inline function red( c : Int ) : Int {
+		return (c >> 16) & 0xff;
+	}
+
+	/**
+	 * Return the green channel value
+	 * @param c 		The color
+	 * @return Int		The channel value
+	 */
+	public static inline function green( c : Int ) : Int {
+		return (c >> 8) & 0xff;
+	}
+
+	/**
+	 * Return the blue channel value
+	 * @param c 		The color
+	 * @return Int		The channel value
+	 */
+	public static inline function blue( c : Int ) : Int {
+		return c & 0xff;
 	}
 
 }
