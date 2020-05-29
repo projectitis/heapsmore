@@ -2,9 +2,9 @@
 __Heaps::more__ is an extension library for use with the [Heaps](https://heaps.io/) Game Framework, written in [Haxe](https://haxe.org/) and open-sourced under the [MIT license](https://choosealicense.com/licenses/mit/).
 
 ## Current status
-Very much a work-in-progress. Currently working on a css-style box-model UI framework. Scrollbars not yet working.
-Have a working cable class and socket, to create patch-panel style interfaces! The cables do not use true catenary curves (probably not even close), I just played around with different formula to adjust bezier handles as the cable moves to get something that looks semi-decent.
-![Socket and Cables](/examples/img/example-socket.jpg)
+Very much a work-in-progress.
+
+Just finished developing an equation parser. It handles functions and variables, and has callbacks to support custom functions, variables and constants. It also supports useful functions for working with color, such as darken, lighten and tint. This EqParser will form the basis for my [JX (Json eXpanded) parser](https://github.com/projectitis/jx).
 
 ## Package structure
 The package structure is similar to Heaps:
@@ -14,9 +14,12 @@ The package structure is similar to Heaps:
 * __examples__ - Examples :)
 
 ## TODO
-* Add scroll areas (overflow:scroll) to Canvas
+* Working scroll bars
 
 ## Changes
+
+__2020-05-29__
+* Wrote an equation parser (`mxd.EqParser`)! Handles many common math functions, custom variables/functions/constants, and also color functions (like darken, lighten and tint)
 
 __2020-05-20__
 * UI: Changed sockets to use drag/drop instead of click/click
