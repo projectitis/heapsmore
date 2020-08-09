@@ -53,13 +53,14 @@ enum TokenType {
 	TTUnknown;
 	TTOpenBracket;
 	TTCloseBracket;
-	TTComma;
 	TTOperator( t:Int );
 	TTString;
 	TTNumber;
 	TTVariable;
 	TTFunction;
+	TTSeperator;
 	TTEndOfFile;
+	TTCustom( t:Int );
 }
 
 /**
@@ -133,6 +134,27 @@ class Token {
 		value = -value;
 		return this;
 	}
+
+	/**
+	 * Trace this token
+	 */
+	public function trace( tab : Int = 0 ) {
+		var s = '';
+		for (i in 0...tab) s += ' ';
+		trace(s+'token.pos: '+this.pos);
+		trace(s+'token.rawValue: '+this.rawValue);
+		trace(s+'token.value: '+this.value);
+		switch (this.type) {
+			case TTOperator(t): trace(s+'token.type: TTOperator('+String.fromCharCode(t)+')');
+			case TTCustom(t): trace(s+'token.type: TTCustom('+String.fromCharCode(t)+')');
+			default: trace(s+'token.type: '+this.type);
+		}
+		switch (this.closingType) {
+			case TTOperator(t): trace(s+'token.closingType: TTOperator('+String.fromCharCode(t)+')');
+			case TTCustom(t): trace(s+'token.closingType: TTCustom('+String.fromCharCode(t)+')');
+			default: trace(s+'token.closingType: '+this.type);
+		}
+	}
 }
 
 /**
@@ -155,7 +177,7 @@ class Stack {
 			case TTOperator(o): {
 				switch (last) {
 					// An operator can only follow a value
-					case TTOperator(_), TTOpenBracket, TTUnknown: error('Unexpected token "'+String.fromCharCode(o)+'"',token.pos);
+					case TTOperator(_), TTOpenBracket, TTUnknown: unexpected( token );
 					// Push the operator
 					default: {
 						// If no other operators, always push
@@ -185,7 +207,7 @@ class Stack {
 							push( new Token( TTOperator('-'.code) ) );
 							stack.push( token.negate() );
 						}
-						else error('Unexpected token "${token.rawValue}"',token.pos);
+						else unexpected( token );
 				}
 			}
 		}
@@ -294,8 +316,35 @@ class Stack {
 	 * @param msg 	The message
 	 * @param pos 	The position in the equation string
 	 */
+	inline function unexpected( t : Token ) {
+		var desc = '';
+		switch (t.type){
+			case TTOperator(t): desc = ' TTOperator("'+String.fromCharCode(t)+'")';
+			case TTCustom(t): desc = ' TTCustom("'+String.fromCharCode(t)+'")';
+			case TTString, TTNumber, TTFunction: desc = ' "'+t.rawValue.toString()+'"';
+			default: desc = ' '+t.type;
+		}
+		error( 'Unexpected token'+desc, t.pos );
+	}
 	inline function error( msg : String, pos : Int ) {
 		throw msg + ' at ' + pos;
+	}
+
+	/**
+	 * Trace this stack
+	 */
+	public function trace( tab : Int = 0 ) {
+		var s = '';
+		for (i in 0...tab) s += ' ';
+		trace(s+'stack');
+		if ( stack.length == 0 ) {
+			trace(s+'  empty');
+			return;
+		}
+		for (i in 0...stack.length) {
+			trace(s+i+':');
+			stack[i].trace(tab+2);
+		}
 	}
 
 }
@@ -306,7 +355,7 @@ class Stack {
  */
 class EqParser {
 
-	var eq : String;
+	var str : String;
 	var pos : Int;
 
 	/**
@@ -317,7 +366,7 @@ class EqParser {
 	/**
 	 * Callback to catch any unknown constants in the equation. (e.g. MY_CONST )
 	 */
-	 public var onConstant : String->Dynamic = null;
+	public var onConstant : String->Dynamic = null;
 
 	/**
 	 * Callback to catch any unknown functions in the equation. (e.g. myFunc( ) )
@@ -331,11 +380,11 @@ class EqParser {
 
 	/**
 	 * Start parsing an equation
-	 * @param eq 		The equation
+	 * @param str 		The equation string
 	 * @return Dynamic	The result
 	 */
-	public function parse( eq : String ) : Dynamic {
-		this.eq = eq;
+	public function parse( str : String ) : Dynamic {
+		this.str = str;
 		pos = 0;
 		return parseExpr( false ).value;
 	}
@@ -351,21 +400,35 @@ class EqParser {
 	function parseExpr( inFunc : Bool ) : Token {
 		var stack : Stack = new Stack();
 		var token : Token = null;
-		while (pos < eq.length) {
 
+		onStartExpr( token, stack ); // Custom hook
+
+		while (pos < str.length) {
+
+			// Find the next token
 			token = parseToken();
 
+			// Process the found token
 			switch ( token.type ) {
+
+				// Custom hook
+				case TTCustom(_): {
+					switch (processCustomToken( token, stack )) {
+						case 0: continue;
+						case -1: break;
+						case 1: // Ignore
+					}
+				}
 				// Function found. Parse the function and push the result to the stack
 				case TTFunction: {
 					parseFunction( token );
 					stack.push( token );
 				}
-				// Comma found. Should be a function argument. return it.
-				case TTComma: {
-					if (!inFunc) error('Unexpected comma',token.pos);
+				// Seperator found. Process stack
+				case TTSeperator: {
+					//if (!inFunc) unexpected( token );
 					token.value = stack.process();
-					token.closingType = TTComma;
+					token.closingType = TTSeperator;
 					return token;
 				}
 				// Close bracket found
@@ -376,7 +439,7 @@ class EqParser {
 					}
 					// The there are no opening brackets, should be last function argument. return it.
 					else {
-						if (!inFunc) error('Unexpected closing bracket',token.pos);
+						if (!inFunc) unexpected( token );
 						token.value = stack.process();
 						token.closingType = TTCloseBracket;
 						return token;
@@ -400,13 +463,39 @@ class EqParser {
 				}
 				// Something else has been found
 				default: {
-					error('Unexpected token of type ${token.type}',token.pos);
+					unexpected( token );
 				}
 			}
 		}
-		token.value = stack.process();
+
+		if (!onEndExpr( token, stack )) { // Custom hook
+			token.value = stack.process();
+		}
 		return token;
 	}
+
+	/**
+	 * Custom hook called before parsing the next expression
+	 * @param token 	The token (empty at this stage)
+	 * @param stack		The token stack
+	 */
+	function onStartExpr( token : Token, stack : Stack ) {}
+
+	/**
+	 * Custom hook called as a custom token is processed during expression parsing
+	 * @param token 	The custom token
+	 * @param stack		The token stack
+	 * @return Int		0=skip to next token, -1=stop parsing expression, 1=continue parsing token
+	 */
+	function processCustomToken( token : Token, stack : Stack ) : Int { return 1; }
+
+	/**
+	 * Custom hook called after parsing an expression
+	 * @param token 	The token (populated)
+	 * @param stack		The token stack
+	 * @return Bool		true=populate with stack value (default), false=we have populated the value manually
+	 */
+	function onEndExpr( token : Token, stack : Stack ) : Bool { return false; }
 
 	/**
 	 * Parse all arguments for a function. At this point we have the function
@@ -421,16 +510,16 @@ class EqParser {
 			argument = parseExpr( true );
 			token.args.push( argument );
 
-			// End of function? (i.e. a closing bracket)
-			if (argument.closingType == TTCloseBracket) {
+			// Check expression was terminated correctly
+			if ( argument.closingType == TTCloseBracket ) {
 				token.value = processFunction( token );
 				break;
 			}
-
-			// If not end of function, comma is expected
-			else if (argument.closingType != TTComma) {
-				error('Unexpected token of type "${argument.type}"',argument.pos);
+			// If not end of function, seperator is expected
+			else if ( argument.closingType != TTSeperator ) {
+				unexpected( token );
 			}
+
 		}
 		return token;
 	}
@@ -444,7 +533,10 @@ class EqParser {
 		var started = false;
 		var ended = false;
 		var token : Token = new Token();
-		while (pos < eq.length) {
+
+		onStartToken( token ); // Custom hook
+
+		while (pos < str.length) {
 			var c = next();
 
 			// Have not yet started
@@ -483,9 +575,9 @@ class EqParser {
 						token.type = TTCloseBracket;
 						break;
 					}
-					// Comma (next argument)
-					case ','.code: {
-						token.type = TTComma;
+					// Seperator (next argument)
+					case ','.code, ';'.code: {
+						token.type = TTSeperator;
 						break;
 					}
 					// Variable
@@ -493,10 +585,22 @@ class EqParser {
 						token.type = TTVariable;
 						started = true;
 					}
+					// Custom token started
+					case isCustomStartCharacter( c ) => true: {
+						started = createCustomToken( c, token );
+						if (!started) break;
+					}
 					// Any other character
 					default:
 						token.rawValue.addChar( c );
 						started = true;
+				}
+			}
+
+			// Parsing custom token
+			else if (isCustomToken( token )) {
+				if (parseCustomToken( c, token )) {
+					break;
 				}
 			}
 
@@ -545,7 +649,7 @@ class EqParser {
 					}
 					// Ends if find operator, bracket or comma
 					case '+'.code, '-'.code, '/'.code, '*'.code, '^'.code, '%'.code, ')'.code,
-						','.code: {
+						','.code, isCustomEndCharacter(c) => true: {
 						rewind();
 						break;
 					}
@@ -601,8 +705,58 @@ class EqParser {
 				}
 			}
 		}
+		onEndToken( token ); // Custom hook
 		return token;
 	}
+
+	inline function isCustomToken( token : Token ) : Bool {
+		switch ( token.type ) {
+			case TTCustom(_): return true;
+			default: return false;
+		}
+	}
+
+	/**
+	 * A custom hook called at the start before starting to parse for the next token
+	 * @param token 	The token object (empty at this stage)
+	 */
+	function onStartToken( token : Token ) {}
+
+	/**
+	 * Check if the character code is a valid token starter
+	 * @param c 	The character code to check
+	 * @return		True if the character code is a valid token starter
+	 */
+	function isCustomStartCharacter( c : Int ) : Bool { return false; }
+
+	/**
+	 * Based on isCustomCharacter, creates the token
+	 * @param c 		The character code
+	 * @param token 	The token to modify
+	 * @return Bool		True if the token is multi-character, of false if it should return immediately
+	 */
+	function createCustomToken( c : Int, token : Token ) : Bool { return false; }
+
+	/**
+	 * Check if the character code is a valid token ender
+	 * @param c 	The character code to check
+	 * @return		True if the character code is a valid token ender
+	 */
+	function isCustomEndCharacter( c : Int ) : Bool { return false; }
+
+	/**
+	 * Parse a character into a custom token
+	 * @param c 		The character code
+	 * @param token 	The token to modify
+	 * @return Bool		True to finish parsing this token. False to continue parsing
+	 */
+	function parseCustomToken( c : Int, token : Token ) : Bool { return false; }
+
+	/**
+	 * A custom hook called at the end of parsing a token, when a token has been found
+	 * @param token 	The populated token object
+	 */
+	function onEndToken( token : Token ) {}
 
 	/**
 	 * Process the function described by the token
@@ -700,7 +854,14 @@ class EqParser {
 			}
 
 			// Color
-
+			case 'rgb': {
+				if (!token.checkArgs( [ATInt,ATInt,ATInt] )) error( 'Incorrect args for "$fn". Expect (Int, Int, Int)', token.pos );
+				return ColorTools.colorFromRGB( token.args[0].value, token.args[1].value, token.args[2].value );
+			}
+			case 'rgba': {
+				if (!token.checkArgs( [ATInt,ATInt,ATInt,ATNumber] )) error( 'Incorrect args for "$fn". Expect (Int, Int, Int, Float)', token.pos );
+				return ColorTools.colorFromRGBa( token.args[0].value, token.args[1].value, token.args[2].value, token.args[3].value );
+			}
 			case 'alpha': {
 				if (!token.checkArgs( [ATInt] )) error( 'Incorrect args for "$fn". Expect (Color)', token.pos );
 				return ColorTools.alpha( token.args[0].value );
@@ -787,16 +948,27 @@ class EqParser {
 		return (i == f)?i:f;
 	}
 
+	inline function unexpected( t : Token ) {
+		var desc = '';
+		switch (t.type){
+			case TTOperator(t): desc = ' TTOperator("'+String.fromCharCode(t)+'")';
+			case TTCustom(t): desc = ' TTCustom("'+String.fromCharCode(t)+'")';
+			case TTString, TTNumber, TTFunction: desc = ' "'+t.rawValue.toString()+'"';
+			default: desc = ' '+t.type;
+		}
+		error( 'Unexpected token'+desc, t.pos );
+	}
+
 	inline function error( msg : String, pos : Int ) {
 		throw msg + ' at ' + pos;
 	}
 
 	inline function next() {
-		return eq.fastCodeAt( pos++ );
+		return str.fastCodeAt( pos++ );
 	}
 
 	inline function peek( offset:Int = 0 ) {
-		return eq.fastCodeAt( pos + offset );
+		return str.fastCodeAt( pos + offset );
 	}
 
 	inline function rewind( amount:Int = 1 ) {
