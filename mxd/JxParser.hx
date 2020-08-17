@@ -53,14 +53,22 @@ enum TokenType {
 	TTUnknown;
 	TTOpenBracket;
 	TTCloseBracket;
+	TTArrayStart;
+	TTArrayEnd;
+	TTObjectStart;
+	TTObjectEnd;
 	TTOperator( t:Int );
+	TTArray;
+	TTObject;
 	TTString;
 	TTNumber;
 	TTVariable;
+	TTDefaultVariable;
+	TTLook;
 	TTFunction;
 	TTSeperator;
+	TTAssignment;
 	TTEndOfFile;
-	TTCustom( t:Int );
 }
 
 /**
@@ -100,7 +108,9 @@ class Token {
 	 */
 	function set_value( v : Dynamic ) : Dynamic {
 		value = v;
-		if ( Std.is(v, std.String) ) type = TTString;
+		if ( Std.is(v, std.Array) ) type = TTArray;
+		else if ( Std.is(v, std.String) ) type = TTString;
+		else if ( Type.typeof(v) == TObject ) type = TTObject;
 		else if ( Math.isNaN( v ) ) type = TTUnknown;
 		else if ( Std.is(v, StdTypes.Float) ) type = TTNumber;
 		else if ( Std.is(v, StdTypes.Int) ) type = TTNumber;
@@ -146,12 +156,10 @@ class Token {
 		trace(s+'token.value: '+this.value);
 		switch (this.type) {
 			case TTOperator(t): trace(s+'token.type: TTOperator('+String.fromCharCode(t)+')');
-			case TTCustom(t): trace(s+'token.type: TTCustom('+String.fromCharCode(t)+')');
 			default: trace(s+'token.type: '+this.type);
 		}
 		switch (this.closingType) {
 			case TTOperator(t): trace(s+'token.closingType: TTOperator('+String.fromCharCode(t)+')');
-			case TTCustom(t): trace(s+'token.closingType: TTCustom('+String.fromCharCode(t)+')');
 			default: trace(s+'token.closingType: '+this.type);
 		}
 	}
@@ -165,6 +173,13 @@ class Stack {
 	var stack : Array<Token> = new Array();
 	public var nested(default,null) : Int = 0;
 	public function new() {}
+
+	/**
+	 * Check if stack is empty
+	 */
+	public function isEmpty() : Bool {
+		return stack.length==0;
+	}
 
 	/**
 	 * Add a token to the stack. Checks for correct token order.
@@ -196,7 +211,7 @@ class Stack {
 			// A negative number can follow a value because it is likely a subtraction (e.g. 17 -8)
 			default: {
 				switch (last) {
-					case TTOperator(_), TTOpenBracket, TTUnknown: {
+					case TTOperator(_), TTOpenBracket, TTArray, TTObject, TTUnknown: {
 						// if bracket, increase nesting counter
 						if (token.type == TTOpenBracket) nested++;
 						// Push token
@@ -219,7 +234,7 @@ class Stack {
 	 * Process one or more operations from the stack
 	 * @param	count		The number of operations to perform from the stack. If 0, process the whole stack
 	 */
-	public function process( count : Int = 0 ) : Dynamic {
+	public function process( count : Int = 0 ) : Token {
 		// Need at least three tokens on the stack to process it
 		while ( stack.length > 2 ) {
 			var b = stack.pop();
@@ -229,7 +244,24 @@ class Stack {
 			var c = new Token();
 			c.type = a.type;
 			switch ( op.type ) {
-				case TTOperator('+'.code): c.value = a.value + b.value;
+				case TTOperator('+'.code): {
+					if (a.type == TTArray) {
+						if (b.type == TTArray) {
+							c.value = a.value.concat( b.value );
+						}
+						else {
+							c.value = a.value;
+							c.value.push( b.value );
+						}
+					}
+					else if (b.type == TTArray) {
+						c.value = b.value;
+						c.value.unshift( a.value );
+					}
+					else {
+						c.value = a.value + b.value;
+					}
+				}
 				case TTOperator('-'.code): c.value = a.value - b.value;
 				case TTOperator('/'.code): c.value = a.value / b.value;
 				case TTOperator('*'.code): c.value = a.value * b.value;
@@ -243,7 +275,7 @@ class Stack {
 			if (count==0) break;
 		}
 		if (stack.length == 0) return null;
-		return stack[0].value;
+		return stack[0];
 	}
 
 	/**
@@ -320,7 +352,6 @@ class Stack {
 		var desc = '';
 		switch (t.type){
 			case TTOperator(t): desc = ' TTOperator("'+String.fromCharCode(t)+'")';
-			case TTCustom(t): desc = ' TTCustom("'+String.fromCharCode(t)+'")';
 			case TTString, TTNumber, TTFunction: desc = ' "'+t.rawValue.toString()+'"';
 			default: desc = ' '+t.type;
 		}
@@ -353,15 +384,25 @@ class Stack {
  * Equation parser class. Call EqParser.parse( str : String ) to parse equations from a string. Implement
  * the onFunction, onVariable and onParameter callbacks to support custom functionallity.
  */
-class EqParser {
+class JxParser {
 
 	var str : String;
 	var pos : Int;
 
 	/**
+	 * User variables
+	 */
+	public var variables : Map<String,Dynamic> = new Map();
+
+	/**
 	 * Callback to catch any unknown variables in the equation. (e.g. $myVariable )
 	 */
 	public var onVariable : String->Dynamic = null;
+
+	/**
+	 * User constants
+	 */
+	public var constants : Map<String,Dynamic> = new Map();
 
 	/**
 	 * Callback to catch any unknown constants in the equation. (e.g. MY_CONST )
@@ -397,27 +438,76 @@ class EqParser {
 	 * 		A second expression is 18.11 ^ 2 - 0.399 * 4229
 	 * @return Token	The last token to be processed, which contains the value and other important info
 	 */
-	function parseExpr( inFunc : Bool ) : Token {
+	function parseExpr( inFunc : Bool, isKey : Bool = false ) : Token {
+
 		var stack : Stack = new Stack();
 		var token : Token = null;
-
-		onStartExpr( token, stack ); // Custom hook
 
 		while (pos < str.length) {
 
 			// Find the next token
-			token = parseToken();
+			token = parseToken( isKey );
 
 			// Process the found token
 			switch ( token.type ) {
-
-				// Custom hook
-				case TTCustom(_): {
-					switch (processCustomToken( token, stack )) {
-						case 0: continue;
-						case -1: break;
-						case 1: // Ignore
+				// Parse an array (values)
+				case TTArrayStart: {
+					var arr = [];
+					var found = false;
+					// Parse expressions and add to array until end of array is found
+					while (pos < str.length){
+						var t : Token = parseExpr( false );
+						if ( t != null ) {
+							arr.push( t.value );
+						}
+						if ( ( t == null ) || ( t.closingType == TTArrayEnd ) ){
+							token.value = arr;
+							stack.push( token );
+							found = true;
+							break;
+						}
 					}
+					if (found) continue;
+					error('Unexpected end of file after '+token.pos, pos);
+				}
+				// Parse an object (key/values)
+				case TTObjectStart: {
+					var obj = {};
+					var key : Dynamic = null;
+					var k : Token = null;
+					var v : Token = null;
+					var found = false;
+					while (pos < str.length){
+						// Parse expression, which is key, or end of object
+						k = parseExpr( false, true );
+						if ( k != null ) {
+							if (k.closingType != TTAssignment) error('Colon expected',pos);
+							key = k.value;
+							// Get the value
+							v = parseExpr( false );
+							// The key is a variable...
+							if ( k.type == TTVariable ) {
+								variables.set( key, v.value );
+							}
+							// The key is a default variable...
+							else if ( k.type == TTDefaultVariable ) {
+								if ( !variables.exists( key ) ) variables.set( key, v.value );
+							}
+							// Standard key...
+							else {
+								Reflect.setField(obj, key, v.value);
+							}
+						}
+						// Check if the object is closed
+						if ( ( k == null ) || ( v.closingType == TTObjectEnd ) ){
+							token.value = obj;
+							stack.push( token );
+							found = true;
+							break;
+						}
+					}
+					if (found) continue;
+					error('Unexpected end of file after '+token.pos, pos);
 				}
 				// Function found. Parse the function and push the result to the stack
 				case TTFunction: {
@@ -427,7 +517,7 @@ class EqParser {
 				// Seperator found. Process stack
 				case TTSeperator: {
 					//if (!inFunc) unexpected( token );
-					token.value = stack.process();
+					token = stack.process();
 					token.closingType = TTSeperator;
 					return token;
 				}
@@ -440,24 +530,28 @@ class EqParser {
 					// The there are no opening brackets, should be last function argument. return it.
 					else {
 						if (!inFunc) unexpected( token );
-						token.value = stack.process();
+						token = stack.process();
 						token.closingType = TTCloseBracket;
 						return token;
 					}
 				}
 				// End of file encountered
-				case TTEndOfFile: {
+				case TTEndOfFile, TTArrayEnd, TTObjectEnd, TTAssignment: {
+					// Remember closing type
+					var tt = token.type;
 					// Check if in a function
-					if (inFunc) error('Unexpected end of file',token.pos);
+					if (inFunc) error('Unexpected token',token.pos);
 					// Check if last is operator
-					if (stack.lastIsOperaor()) error('Unexpected end of file',token.pos);
+					if (stack.lastIsOperaor()) error('Unexpected token',token.pos);
+					// If stack is empty, this is a trailing seperator and should be ignored
+					if (stack.isEmpty()) return null;
 					// Process the stack
-					token.value = stack.process();
-					token.closingType = TTEndOfFile;
+					token = stack.process();
+					token.closingType = tt;
 					return token;
 				}
 				// Found a mathematical operator, open bracket or value
-				case TTOperator(_), TTOpenBracket, TTNumber, TTString: {
+				case TTOperator(_), TTOpenBracket, TTNumber, TTString, TTVariable, TTDefaultVariable: {
 					// Push to the stack
 					stack.push( token );
 				}
@@ -468,34 +562,8 @@ class EqParser {
 			}
 		}
 
-		if (!onEndExpr( token, stack )) { // Custom hook
-			token.value = stack.process();
-		}
 		return token;
 	}
-
-	/**
-	 * Custom hook called before parsing the next expression
-	 * @param token 	The token (empty at this stage)
-	 * @param stack		The token stack
-	 */
-	function onStartExpr( token : Token, stack : Stack ) {}
-
-	/**
-	 * Custom hook called as a custom token is processed during expression parsing
-	 * @param token 	The custom token
-	 * @param stack		The token stack
-	 * @return Int		0=skip to next token, -1=stop parsing expression, 1=continue parsing token
-	 */
-	function processCustomToken( token : Token, stack : Stack ) : Int { return 1; }
-
-	/**
-	 * Custom hook called after parsing an expression
-	 * @param token 	The token (populated)
-	 * @param stack		The token stack
-	 * @return Bool		true=populate with stack value (default), false=we have populated the value manually
-	 */
-	function onEndExpr( token : Token, stack : Stack ) : Bool { return false; }
 
 	/**
 	 * Parse all arguments for a function. At this point we have the function
@@ -525,18 +593,18 @@ class EqParser {
 	}
 
 	/**
-	 * Grab the next token of the equation. It could be a value, an operator, a function, etc.
+	 * Grab the next token. It could be a value, an operator, a function, etc.
+	 * Comments and whitespace are ignored.
 	 */
-	public function parseToken() {
+	public function parseToken( isKey : Bool = false ) : Token {
 		var start = pos;
 		var quote = 0;
 		var started = false;
 		var ended = false;
 		var token : Token = new Token();
 
-		onStartToken( token ); // Custom hook
-
 		while (pos < str.length) {
+			// Get next character from input
 			var c = next();
 
 			// Have not yet started
@@ -545,6 +613,46 @@ class EqParser {
 				switch (c) {
 					// Ignore whitespace
 					case ' '.code, '\r'.code, '\n'.code, '\t'.code: {}
+					// Comment
+					case '/'.code: {
+						var n = peek();
+						// Line comment. Ignore until newline
+						if (n == '/'.code) {
+							while (pos < str.length){
+								n = next();
+								if ((n == '\n'.code) || (n == '\r'.code)) break;
+							}
+							continue;
+						}
+						// Block comment. Ignore until end of block comment
+						if (n == '*'.code) {
+							while (pos < str.length) {
+								if ((next() == '/'.code) && (peek(-2) == '*'.code)) break;
+							}
+							continue;
+						}
+						// Otherwise operator
+						token.type = TTOperator(c);
+						break;
+					}
+					// Array
+					case '['.code: {
+						token.type = TTArrayStart;
+						return token;
+					}
+					case ']'.code: {
+						token.type = TTArrayEnd;
+						return token;
+					}
+					// Object
+					case '{'.code: {
+						token.type = TTObjectStart;
+						return token;
+					}
+					case '}'.code: {
+						token.type = TTObjectEnd;
+						return token;
+					}
 					// Start string
 					case '"'.code, '\''.code: {
 						token.type = TTString;
@@ -552,7 +660,7 @@ class EqParser {
 						started = true;
 					}
 					// Operators
-					case '+'.code, '/'.code, '*'.code, '^'.code, '%'.code: {
+					case '+'.code, '*'.code, '^'.code, '%'.code: {
 						token.type = TTOperator(c);
 						break;
 					}
@@ -569,38 +677,42 @@ class EqParser {
 					// Brackets
 					case '('.code: {
 						token.type = TTOpenBracket;
-						break;
+						return token;
 					}
 					case ')'.code: {
 						token.type = TTCloseBracket;
-						break;
+						return token;
 					}
 					// Seperator (next argument)
 					case ','.code, ';'.code: {
 						token.type = TTSeperator;
-						break;
+						return token;
+					}
+					// Assignment (value follows)
+					case ':'.code: {
+						token.type = TTAssignment;
+						return token;
 					}
 					// Variable
 					case '$'.code: {
 						token.type = TTVariable;
 						started = true;
 					}
-					// Custom token started
-					case isCustomStartCharacter( c ) => true: {
-						started = createCustomToken( c, token );
-						if (!started) break;
+					// Default variable
+					case '?'.code: {
+						if ( peek() == '$'.code ) {
+							next();
+							token.type = TTDefaultVariable;
+						}
+						else {
+							token.rawValue.addChar( c );	
+						}
+						started = true;
 					}
 					// Any other character
 					default:
 						token.rawValue.addChar( c );
 						started = true;
-				}
-			}
-
-			// Parsing custom token
-			else if (isCustomToken( token )) {
-				if (parseCustomToken( c, token )) {
-					break;
 				}
 			}
 
@@ -647,9 +759,8 @@ class EqParser {
 						token.type = TTFunction;
 						break;
 					}
-					// Ends if find operator, bracket or comma
-					case '+'.code, '-'.code, '/'.code, '*'.code, '^'.code, '%'.code, ')'.code,
-						','.code, isCustomEndCharacter(c) => true: {
+					// Ends if find operator, bracket, seperator or assignment
+					case '+'.code, '-'.code, '/'.code, '*'.code, '^'.code, '%'.code, ')'.code, ']'.code, '}'.code, ','.code, ';'.code, ':'.code: {
 						rewind();
 						break;
 					}
@@ -658,7 +769,7 @@ class EqParser {
 						ended = true;
 					}
 					// Other
-					default:
+					default: {
 						if (ended) {
 							rewind();
 							break;
@@ -666,97 +777,82 @@ class EqParser {
 						else {
 							token.rawValue.addChar( c );
 						}
+					}
 				}
 			}
 			
 		}
 		// Check for end of file
-		if (!started) {
-			token.type == TTEndOfFile;
+		if (pos >= str.length) {
+			token.type = TTEndOfFile;
 		}
-		// Token is a variable. Ask for value
-		else if (token.type == TTVariable) {
-			if (onVariable == null) error( 'Unhandled variable "${token.rawValue}"', start );
-			token.value = onVariable( token.rawValue.toString() );
+		// Token is default variable (always assignment)
+		else if ( token.type == TTDefaultVariable ) {
+			if (!isKey) error( "Unexpected default variable assignment", token.pos );
+			token.value = token.rawValue.toString();
+			token.type = TTDefaultVariable;
+		}
+		// Token is a variable
+		else if ( token.type == TTVariable ) {
+			// Is this a key?
+			if (isKey){
+				token.value = token.rawValue.toString();
+				token.type = TTVariable;
+			}
+			// First see if variable is in user map
+			else if ( variables.exists( token.rawValue.toString() ) ) {	
+				token.value = variables.get(token.rawValue.toString());
+			}
+			// Next, check if the user has implemented onVariable
+			else if ( onVariable != null ) {
+				token.value = onVariable( token.rawValue.toString() );
+			}
+			// Otherwise, unhandled.
+			// XXX: Option to ignore unhandled variables
+			else {
+				error( 'Unhandled variable "${token.rawValue}"', start );
+			}
 		}
 		// Token is a string
 		else if (token.type == TTString) {
 			token.value = token.rawValue.toString();
 		}
-		// Token is unknown (number or constant)
+		// Token is unknown (number, constant or unquoted key)
 		else if (token.type == TTUnknown) {
 			// See if it's a number
 			token.value = strToNum( token.rawValue.toString() );
 			if ( token.type == TTUnknown ) {
-				switch( token.rawValue.toString().toUpperCase() ) {
-					case 'PI':
-						token.value = Math.PI;
-						token.type = TTNumber;
-					case 'PI_2':
-						token.value = Math.PI;
-						token.type = TTNumber;
-					case 'INV_PI':
-						token.value = 1/Math.PI;
-						token.type = TTNumber;
-					default:
-						if (onConstant == null) error( 'Unhandled constant "${token.rawValue}"', start );
-						token.value = onConstant( token.rawValue.toString() );
-						
+				// Unquoted key
+				if (isKey) {
+					token.value = token.rawValue.toString();
+				}
+				// Constant
+				else {
+					switch( token.rawValue.toString().toUpperCase() ) {
+						case 'PI': {
+							token.value = Math.PI;
+						}
+						case 'PI_2': {
+							token.value = Math.PI;
+						}
+						case 'INV_PI': {
+							token.value = 1/Math.PI;
+						}
+						default: {
+							if (onConstant != null){
+								var d = onConstant( token.rawValue.toString() );
+								token.value = (d==null)?token.rawValue.toString():d;
+							}
+							else {
+								error( "Unhandled constant", token.pos );
+							}
+						}
+					}
 				}
 			}
 		}
-		onEndToken( token ); // Custom hook
 		return token;
 	}
-
-	inline function isCustomToken( token : Token ) : Bool {
-		switch ( token.type ) {
-			case TTCustom(_): return true;
-			default: return false;
-		}
-	}
-
-	/**
-	 * A custom hook called at the start before starting to parse for the next token
-	 * @param token 	The token object (empty at this stage)
-	 */
-	function onStartToken( token : Token ) {}
-
-	/**
-	 * Check if the character code is a valid token starter
-	 * @param c 	The character code to check
-	 * @return		True if the character code is a valid token starter
-	 */
-	function isCustomStartCharacter( c : Int ) : Bool { return false; }
-
-	/**
-	 * Based on isCustomCharacter, creates the token
-	 * @param c 		The character code
-	 * @param token 	The token to modify
-	 * @return Bool		True if the token is multi-character, of false if it should return immediately
-	 */
-	function createCustomToken( c : Int, token : Token ) : Bool { return false; }
-
-	/**
-	 * Check if the character code is a valid token ender
-	 * @param c 	The character code to check
-	 * @return		True if the character code is a valid token ender
-	 */
-	function isCustomEndCharacter( c : Int ) : Bool { return false; }
-
-	/**
-	 * Parse a character into a custom token
-	 * @param c 		The character code
-	 * @param token 	The token to modify
-	 * @return Bool		True to finish parsing this token. False to continue parsing
-	 */
-	function parseCustomToken( c : Int, token : Token ) : Bool { return false; }
-
-	/**
-	 * A custom hook called at the end of parsing a token, when a token has been found
-	 * @param token 	The populated token object
-	 */
-	function onEndToken( token : Token ) {}
 
 	/**
 	 * Process the function described by the token
@@ -952,7 +1048,6 @@ class EqParser {
 		var desc = '';
 		switch (t.type){
 			case TTOperator(t): desc = ' TTOperator("'+String.fromCharCode(t)+'")';
-			case TTCustom(t): desc = ' TTCustom("'+String.fromCharCode(t)+'")';
 			case TTString, TTNumber, TTFunction: desc = ' "'+t.rawValue.toString()+'"';
 			default: desc = ' '+t.type;
 		}
